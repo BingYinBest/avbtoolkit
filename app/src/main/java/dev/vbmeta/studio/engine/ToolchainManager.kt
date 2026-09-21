@@ -114,10 +114,19 @@ class ToolchainManager(private val context: Context) {
                 "不可用"
             }
         }
+        // fec 没有 version 子命令，--help 打印 usage 但退出码为 1（AOSP 行为），有输出即视为可用
+        suspend fun probeFec(command: List<String>): String {
+            return try {
+                val (_, out) = CommandRunner.runCapture(command, env)
+                if (out.isNotBlank()) "可用" else "不可用"
+            } catch (_: Exception) {
+                "不可用"
+            }
+        }
         mapOf(
             "Python" to probe(listOf(paths().python, "--version")),
             "OpenSSL" to probe(listOf(paths().openssl, "version")),
-            "fec" to probe(listOf(paths().fec, "--help")).ifEmpty { "可用" },
+            "fec" to probeFec(listOf(paths().fec, "--help")),
             "avbtool" to probe(listOf(paths().python, paths().avbtool, "version")),
         )
     }
