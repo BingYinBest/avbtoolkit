@@ -34,7 +34,7 @@ export CC="$TOOLCHAIN/bin/aarch64-linux-android21-clang"
 ./Configure -static no-shared no-tests no-ui-console \
   --cross-compile-prefix="$TOOLCHAIN/bin/aarch64-linux-android21-" \
   android-aarch64
-make -j"$(nproc)" build_libs apps/openssl >/dev/null
+make -j"$(nproc)" build_libs apps/openssl 2>&1 | tail -80
 
 mkdir -p "$(dirname "$OUT")"
 cp apps/openssl "$OUT"
