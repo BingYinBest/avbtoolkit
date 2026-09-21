@@ -7,6 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,12 +34,13 @@ fun KeysPager(
 
     var pendingExport by remember { mutableStateOf<KeyEntry?>(null) }
     var pendingAvbExport by remember { mutableStateOf<KeyEntry?>(null) }
+    val context = LocalContext.current
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             var name: String? = null
             runCatching {
-                androidx.compose.ui.platform.LocalContext.current.contentResolver
+                context.contentResolver
                     .query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
                     ?.use { c -> if (c.moveToFirst()) name = c.getString(0) }
             }

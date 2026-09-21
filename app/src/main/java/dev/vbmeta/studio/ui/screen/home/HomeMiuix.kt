@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoFixHigh
@@ -300,7 +299,7 @@ private fun RecentJobsCard(
                     BasicComponent(
                         title = job.displayName,
                         summary = "${job.partitionType.label} · ${job.status.label} · ${formatTime(job.createdAt)}",
-                        onClick = actions.onOpenPage(1),
+                        onClick = { actions.onOpenPage(1) },
                     )
                 }
             }

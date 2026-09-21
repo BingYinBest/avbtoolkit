@@ -33,7 +33,7 @@ fun WorkbenchPager(
         onPauseOrDispose { }
     }
 
-    val pickLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocuments()) { uris ->
+    val pickLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocuments<String>()) { uris ->
         if (!uris.isNullOrEmpty()) viewModel.onImagesPicked(uris)
     }
 
@@ -52,7 +52,7 @@ fun WorkbenchPager(
     }
 
     val actions = WorkbenchActions(
-        onPickImages = { pickLauncher.launch(arrayOf("*/*")) },
+        onPickImages = { pickLauncher.launch("*/*") },
         onSelectJob = viewModel::selectJob,
         onUpdateConfig = viewModel::updateConfig,
         onRemoveJob = viewModel::removeJob,

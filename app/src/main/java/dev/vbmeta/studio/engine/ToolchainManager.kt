@@ -87,7 +87,7 @@ class ToolchainManager(private val context: Context) {
     /** 运行各组件 --version，返回组件名 → 版本信息（供首页展示与自检）。 */
     suspend fun selfCheck(): Map<String, String> = withContext(Dispatchers.IO) {
         val env = env()
-        fun probe(command: List<String>): String {
+        suspend fun probe(command: List<String>): String {
             val (exit, out) = CommandRunner.runCapture(command, env)
             if (exit != 0) return "不可用"
             return out.trim().lineSequence().firstOrNull() ?: ""

@@ -264,7 +264,7 @@ private fun ConfigSection(
             items = JobMode.entries.map { it.label },
             selectedIndex = JobMode.entries.indexOfFirst { it == config.mode }.coerceAtLeast(0),
             onItemSelected = { index ->
-                JobMode.entries.getOrNull(index)?.let { mode -> update { it.copy(mode = mode) } }
+                JobMode.entries.getOrNull(index)?.let { m -> update { cfg -> cfg.copy(mode = m) } }
             },
         )
         SegmentedDropdownItem(
@@ -274,7 +274,7 @@ private fun ConfigSection(
             items = listOf(stringResource(R.string.workbench_no_key)) + state.keys.map { it.name },
             selectedIndex = (listOf(null) + state.keys.map { it.name }).indexOf(config.keyName).coerceAtLeast(0),
             onItemSelected = { index ->
-                update { it.copy(keyName = (listOf(null) + state.keys.map { k -> k.name })[index]) }
+                update { cfg -> cfg.copy(keyName = (listOf(null) + state.keys.map { k -> k.name })[index]) }
             },
         )
         SegmentedDropdownItem(
@@ -284,27 +284,27 @@ private fun ConfigSection(
             items = ALGORITHMS,
             selectedIndex = ALGORITHMS.indexOf(config.algorithm).coerceAtLeast(0),
             onItemSelected = { index ->
-                ALGORITHMS.getOrNull(index)?.let { algorithm -> update { it.copy(algorithm = algorithm) } }
+                ALGORITHMS.getOrNull(index)?.let { algo -> update { cfg -> cfg.copy(algorithm = algo) } }
             },
         )
         NumericConfigField(
             key = job.id,
             title = stringResource(R.string.workbench_rollback),
             initial = config.rollbackIndex,
-            onCommit = { update { it.copy(rollbackIndex = it) } },
+            onCommit = { v -> update { cfg -> cfg.copy(rollbackIndex = v) } },
         )
         if (config.mode == JobMode.HASHTREE_FOOTER || config.mode == JobMode.FEC_ENCODE) {
             NumericConfigField(
                 key = job.id,
                 title = stringResource(R.string.workbench_fec_roots),
                 initial = (config.fecNumRoots ?: 2).toLong(),
-                onCommit = { update { it.copy(fecNumRoots = it.toInt()) } },
+                onCommit = { v -> update { cfg -> cfg.copy(fecNumRoots = v.toInt()) } },
             )
         }
         if (config.mode == JobMode.HASH_FOOTER || config.mode == JobMode.HASHTREE_FOOTER) {
             OutlinedTextField(
                 value = config.partitionName ?: "",
-                onValueChange = { update { it.copy(partitionName = it) } },
+                onValueChange = { v -> update { cfg -> cfg.copy(partitionName = v) } },
                 label = { Text(stringResource(R.string.workbench_partition_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
@@ -313,7 +313,7 @@ private fun ConfigSection(
                 key = job.id,
                 title = stringResource(R.string.workbench_partition_size),
                 initial = config.partitionSize ?: 0,
-                onCommit = { update { it.copy(partitionSize = if (it > 0) it else null) } },
+                onCommit = { v -> update { cfg -> cfg.copy(partitionSize = if (v > 0) v else null) } },
             )
         }
     }

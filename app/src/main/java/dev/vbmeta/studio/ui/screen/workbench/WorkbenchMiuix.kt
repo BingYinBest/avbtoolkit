@@ -54,6 +54,7 @@ import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
@@ -89,13 +90,13 @@ fun WorkbenchPagerMiuix(
                     color = barColor,
                     title = stringResource(R.string.tab_workbench),
                     actions = {
-                        Icon(
-                            imageVector = Icons.Rounded.Add,
-                            tint = colorScheme.onSurface,
-                            contentDescription = stringResource(R.string.workbench_add),
-                            modifier = Modifier.padding(end = 20.dp),
-                            onClick = actions.onPickImages,
-                        )
+                        IconButton(onClick = actions.onPickImages, modifier = Modifier.padding(end = 8.dp)) {
+                            Icon(
+                                imageVector = Icons.Rounded.Add,
+                                tint = colorScheme.onSurface,
+                                contentDescription = stringResource(R.string.workbench_add),
+                            )
+                        }
                     },
                     scrollBehavior = scrollBehavior,
                 )
@@ -277,7 +278,7 @@ private fun ConfigSection(
             items = JobMode.entries.map { it.label },
             selectedIndex = JobMode.entries.indexOfFirst { it == config.mode }.coerceAtLeast(0),
             onSelectedIndexChange = { index ->
-                JobMode.entries.getOrNull(index)?.let { update { it.copy(mode = mode) } }
+                JobMode.entries.getOrNull(index)?.let { m -> update { cfg -> cfg.copy(mode = m) } }
             },
         )
         OverlayDropdownPreference(
@@ -286,7 +287,7 @@ private fun ConfigSection(
             items = listOf(stringResource(R.string.workbench_no_key)) + state.keys.map { it.name },
             selectedIndex = (listOf(null) + state.keys.map { it.name }).indexOf(config.keyName).coerceAtLeast(0),
             onSelectedIndexChange = { index ->
-                update { it.copy(keyName = (listOf(null) + state.keys.map { k -> k.name })[index]) }
+                update { cfg -> cfg.copy(keyName = (listOf(null) + state.keys.map { k -> k.name })[index]) }
             },
         )
         OverlayDropdownPreference(
@@ -295,35 +296,35 @@ private fun ConfigSection(
             items = ALGORITHMS,
             selectedIndex = ALGORITHMS.indexOf(config.algorithm).coerceAtLeast(0),
             onSelectedIndexChange = { index ->
-                ALGORITHMS.getOrNull(index)?.let { update { it.copy(algorithm = it) } }
+                ALGORITHMS.getOrNull(index)?.let { algo -> update { cfg -> cfg.copy(algorithm = algo) } }
             },
         )
         NumericConfigField(
             key = job.id,
             title = stringResource(R.string.workbench_rollback),
             initial = config.rollbackIndex,
-            onCommit = { update { it.copy(rollbackIndex = it) } },
+            onCommit = { v -> update { cfg -> cfg.copy(rollbackIndex = v) } },
         )
         if (config.mode == JobMode.HASHTREE_FOOTER || config.mode == JobMode.FEC_ENCODE) {
             NumericConfigField(
                 key = job.id,
                 title = stringResource(R.string.workbench_fec_roots),
                 initial = (config.fecNumRoots ?: 2).toLong(),
-                onCommit = { update { it.copy(fecNumRoots = it.toInt()) } },
+                onCommit = { v -> update { cfg -> cfg.copy(fecNumRoots = v.toInt()) } },
             )
         }
         if (config.mode == JobMode.HASH_FOOTER || config.mode == JobMode.HASHTREE_FOOTER) {
             EditText(
                 title = stringResource(R.string.workbench_partition_name),
                 value = config.partitionName ?: "",
-                onValueChange = { update { it.copy(partitionName = it) } },
+                onValueChange = { v -> update { cfg -> cfg.copy(partitionName = v) } },
                 textHint = job.partitionType.label,
             )
             NumericConfigField(
                 key = job.id,
                 title = stringResource(R.string.workbench_partition_size),
                 initial = config.partitionSize ?: 0,
-                onCommit = { update { it.copy(partitionSize = if (it > 0) it else null) } },
+                onCommit = { v -> update { cfg -> cfg.copy(partitionSize = if (v > 0) v else null) } },
             )
         }
     }

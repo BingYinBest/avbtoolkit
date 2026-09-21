@@ -97,7 +97,10 @@ class AvbTool(private val toolchain: ToolchainManager) {
             when (params.fecNumRoots) {
                 null -> {}
                 0 -> add("--do_not_generate_fec")
-                else -> add("--fec_num_roots"); add(params.fecNumRoots.toString())
+                else -> {
+                    add("--fec_num_roots")
+                    add(params.fecNumRoots.toString())
+                }
             }
             params.keyPath?.let { add("--key"); add(it) }
             params.salt?.let { add("--salt"); add(it) }

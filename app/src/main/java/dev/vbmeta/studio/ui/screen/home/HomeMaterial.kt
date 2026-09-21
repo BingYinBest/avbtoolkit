@@ -252,7 +252,7 @@ private fun RecentJobsCard(
     state: HomeUiState,
     actions: HomeActions,
 ) {
-    TonalCard(onClick = actions.onOpenPage(1)) {
+    TonalCard(onClick = { actions.onOpenPage(1) }) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

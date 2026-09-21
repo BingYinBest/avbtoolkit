@@ -43,6 +43,7 @@ import dev.vbmeta.studio.ui.util.rememberBlurBackdrop
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
@@ -80,13 +81,13 @@ fun KeysPagerMiuix(
                     color = barColor,
                     title = stringResource(R.string.tab_keys),
                     actions = {
-                        Icon(
-                            imageVector = Icons.Rounded.FileOpen,
-                            tint = colorScheme.onSurface,
-                            contentDescription = stringResource(R.string.keys_import),
-                            modifier = Modifier.padding(end = 20.dp),
-                            onClick = actions.onImport,
-                        )
+                        IconButton(onClick = actions.onImport, modifier = Modifier.padding(end = 8.dp)) {
+                            Icon(
+                                imageVector = Icons.Rounded.FileOpen,
+                                tint = colorScheme.onSurface,
+                                contentDescription = stringResource(R.string.keys_import),
+                            )
+                        }
                     },
                     scrollBehavior = scrollBehavior,
                 )
