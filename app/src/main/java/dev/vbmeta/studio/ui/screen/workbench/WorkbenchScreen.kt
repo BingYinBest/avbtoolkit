@@ -33,7 +33,7 @@ fun WorkbenchPager(
         onPauseOrDispose { }
     }
 
-    val pickLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocuments<String>()) { uris ->
+    val pickLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         if (!uris.isNullOrEmpty()) viewModel.onImagesPicked(uris)
     }
 
