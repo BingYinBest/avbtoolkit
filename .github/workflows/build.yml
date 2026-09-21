@@ -22,7 +22,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends zstd file
 
+      - name: Set up Android NDK r26d
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26d
+          add-to-path: false
+
       - name: Assemble toolchain.zip
+        env:
+          NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: bash scripts/fetch-toolchain.sh
 
       - name: Smoke test — run aarch64 binaries via qemu
