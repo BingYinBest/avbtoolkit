@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.vbmeta.studio.R
-import dev.vbmeta.studio.ui.component.markdown.MarkdownContent
+import dev.vbmeta.studio.ui.component.markdown.GithubMarkdown
 import dev.vbmeta.studio.ui.theme.LocalEnableBlur
 import dev.vbmeta.studio.ui.util.BlurredBar
 import dev.vbmeta.studio.ui.util.rememberBlurBackdrop
@@ -102,7 +102,8 @@ fun GuidePagerMiuix(
                             }
                         }
                         state.content?.let { content ->
-                            MarkdownContent(content = content, isMarkdown = true)
+                            // 直接 WebView 渲染（MarkdownContent 自带 verticalScroll，在 LazyColumn item 内会崩）
+                            GithubMarkdown(content = content, isMarkdown = true)
                         }
                     }
                     Spacer(Modifier.height(bottomInnerPadding))
