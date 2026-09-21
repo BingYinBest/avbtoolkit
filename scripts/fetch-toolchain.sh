@@ -24,15 +24,12 @@ FEC_SHA256="7467908451cae1dd6bc23c36b994bd0885316d0ddd5c526e133c0ded77fc397b"
 
 # ---------- 1. musl 静态 Python（aarch64） ----------
 echo "==> Python"
-PY_URL=""
-# 注意：GitHub API 的 JSON 中资产 URL 的 "+" 被编码为 %2B，需用 %2B 匹配
-for pattern in 'install_only_stripped' 'install_only' 'debug%2Bstatic-full'; do
-  PY_URL="$(curl -fsSL "https://api.github.com/repos/astral-sh/python-build-standalone/releases/tags/$PYTHON_RELEASE" \
-    | grep -o "https://[^\"]*cpython-${PYTHON_VERSION}%2B${PYTHON_RELEASE}-aarch64-unknown-linux-musl[^\"]*${pattern}[^\"]*" \
-    | head -1 || true)"
-  [ -n "$PY_URL" ] && break
-done
-[ -z "$PY_URL" ] && { echo "无法定位 python-build-standalone 资产" >&2; exit 1; }
+# 必须用静态链接变体（debug+static-full）：install_only 系列是动态 musl，
+# 在 Android 上缺少 ld-musl loader 无法运行
+PY_URL="$(curl -fsSL "https://api.github.com/repos/astral-sh/python-build-standalone/releases/tags/$PYTHON_RELEASE" \
+  | grep -o "https://[^\"]*cpython-${PYTHON_VERSION}%2B${PYTHON_RELEASE}-aarch64-unknown-linux-musl[^\"]*debug%2Bstatic-full[^\"]*" \
+  | head -1 || true)"
+[ -z "$PY_URL" ] && { echo "无法定位 python-build-standalone 静态资产" >&2; exit 1; }
 echo "    下载: $PY_URL"
 curl -fL --retry 3 -o python.tar.zst "$PY_URL"
 zstd -d -f python.tar.zst -o python.tar
