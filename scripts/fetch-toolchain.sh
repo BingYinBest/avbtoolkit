@@ -33,14 +33,23 @@ PY_URL="$(curl -fsSL "https://api.github.com/repos/astral-sh/python-build-standa
 echo "    下载: $PY_URL"
 curl -fL --retry 3 -o python.tar.zst "$PY_URL"
 zstd -d -f python.tar.zst -o python.tar
-tar xf python.tar -C "$OUT/python" --strip-components=1
-PYBIN="$OUT/python/bin"
-# 确保 python3.10 存在（install_only 可能只带 python3）
-if [ ! -e "$PYBIN/python3.10" ] && [ -e "$PYBIN/python3" ]; then
-  ln "$PYBIN/python3" "$PYBIN/python3.10"
+mkdir -p "$OUT/python" "$ROOT/build/downloads/pysrc"
+tar xf python.tar -C "$ROOT/build/downloads/pysrc" --strip-components=1
+# full 变体目录结构不固定（可能嵌套），find 定位可执行文件后重组为 bin/ + lib/ 布局
+PYEXE="$(find "$ROOT/build/downloads/pysrc" -maxdepth 4 -type f \( -name 'python3.10' -o -name 'python3' \) | head -1)"
+if [ -z "$PYEXE" ]; then
+  echo "python 可执行文件缺失，包结构：" >&2
+  find "$ROOT/build/downloads/pysrc" -maxdepth 3 | head -40 >&2
+  exit 1
 fi
-[ -x "$PYBIN/python3.10" ] || { echo "python 可执行文件缺失" >&2; ls -la "$PYBIN"; exit 1; }
-rm -f python.tar python.tar.zst
+PYROOT="$(dirname "$(dirname "$PYEXE")")"
+cp -r "$PYROOT/bin" "$OUT/python/bin"
+cp -r "$PYROOT/lib" "$OUT/python/lib"
+if [ ! -e "$OUT/python/bin/python3.10" ] && [ -e "$OUT/python/bin/python3" ]; then
+  ln "$OUT/python/bin/python3" "$OUT/python/bin/python3.10"
+fi
+[ -x "$OUT/python/bin/python3.10" ] || { echo "python 可执行文件缺失" >&2; exit 1; }
+rm -rf "$ROOT/build/downloads/pysrc" python.tar python.tar.zst
 
 # ---------- 2. 静态 openssl（aarch64） ----------
 echo "==> OpenSSL"
