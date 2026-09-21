@@ -53,9 +53,9 @@ jobs:
           sudo apt-get install -y --no-install-recommends qemu-user-static
           mkdir -p build
           set +e
-          qemu-aarch64-static build/final/jni/arm64-v8a/python3.10 --version > build/smoke.log 2>&1
+          qemu-aarch64-static build/final/jni/arm64-v8a/libvbm_python.so --version > build/smoke.log 2>&1
           echo "python exit=$?" >> build/smoke.log
-          qemu-aarch64-static build/final/jni/arm64-v8a/openssl version >> build/smoke.log 2>&1
+          qemu-aarch64-static build/final/jni/arm64-v8a/libvbm_openssl.so version >> build/smoke.log 2>&1
           echo "openssl exit=$?" >> build/smoke.log
           # fec（NDK 静态 bionic）的 TLS 段对齐检查是 qemu-user 的已知限制，真机 bionic loader 正常，此处跳过
           cat build/smoke.log
