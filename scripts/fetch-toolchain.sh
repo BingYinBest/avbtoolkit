@@ -36,7 +36,8 @@ zstd -d -f python.tar.zst -o python.tar
 mkdir -p "$OUT/python" "$ROOT/build/downloads/pysrc"
 tar xf python.tar -C "$ROOT/build/downloads/pysrc" --strip-components=1
 # full 变体目录结构不固定（可能嵌套），find 定位可执行文件后重组为 bin/ + lib/ 布局
-PYEXE="$(find "$ROOT/build/downloads/pysrc" -maxdepth 4 -type f \( -name 'python3.10' -o -name 'python3' \) | head -1)"
+# 注意不能用 -type f：bin/python3 是指向 python3.10 的符号链接
+PYEXE="$(find "$ROOT/build/downloads/pysrc" -maxdepth 4 \( -name 'python3.10' -o -name 'python3' \) | head -1)"
 if [ -z "$PYEXE" ]; then
   echo "python 可执行文件缺失，包结构：" >&2
   find "$ROOT/build/downloads/pysrc" -maxdepth 3 | head -40 >&2
