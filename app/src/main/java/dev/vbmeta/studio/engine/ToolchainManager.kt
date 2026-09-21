@@ -88,9 +88,12 @@ class ToolchainManager(private val context: Context) {
     suspend fun selfCheck(): Map<String, String> = withContext(Dispatchers.IO) {
         val env = env()
         suspend fun probe(command: List<String>): String {
-            val (exit, out) = CommandRunner.runCapture(command, env)
-            if (exit != 0) return "不可用"
-            return out.trim().lineSequence().firstOrNull() ?: ""
+            return try {
+                val (exit, out) = CommandRunner.runCapture(command, env)
+                if (exit != 0) "不可用" else out.trim().lineSequence().firstOrNull() ?: ""
+            } catch (_: Exception) {
+                "不可用"
+            }
         }
         mapOf(
             "Python" to probe(listOf(paths().python, "--version")),
@@ -130,8 +133,19 @@ class ToolchainManager(private val context: Context) {
             File(binDir, "openssl"),
             File(binDir, "fec"),
             File(binDir, "avbtool.py"),
-        ).forEach { it.setExecutable(true, false) }
+        ).forEach { makeExecutable(it) }
 
         File(rootDir, VERSION_FILE).writeText(ASSET_VERSION)
+    }
+
+    /**
+     * 确保文件可执行。File.setExecutable 在部分 ROM（如 ZUI）上不生效，
+     * 需要 fallback 到系统 chmod；仍失败则交给调用方处理。
+     */
+    private fun makeExecutable(file: File) {
+        if (file.setExecutable(true, false) && file.canExecute()) return
+        runCatching {
+            ProcessBuilder("/system/bin/chmod", "755", file.absolutePath).start().waitFor()
+        }
     }
 }

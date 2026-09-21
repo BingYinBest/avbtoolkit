@@ -148,16 +148,21 @@ class WorkbenchViewModel : ViewModel() {
             val dir = File(app.filesDir, "work").apply { mkdirs() }
             val out = File(dir, "vbmeta-disable.img")
             val log = StringBuilder()
-            val exit = avb.makeVbmetaImage(
-                AvbTool.VbmetaParams(
-                    output = out.absolutePath,
-                    keyPath = null,
-                    algorithm = "NONE",
-                    flags = 2, // FLAG_VERIFICATION_DISABLED
-                    paddingSize = 4096,
-                ),
-                onLine = { log.appendLine(it) },
-            )
+            val exit = try {
+                avb.makeVbmetaImage(
+                    AvbTool.VbmetaParams(
+                        output = out.absolutePath,
+                        keyPath = null,
+                        algorithm = "NONE",
+                        flags = 2, // FLAG_VERIFICATION_DISABLED
+                        paddingSize = 4096,
+                    ),
+                    onLine = { log.appendLine(it) },
+                )
+            } catch (e: Exception) {
+                log.appendLine("异常: ${e.message}")
+                -1
+            }
             log.appendLine("make_vbmeta_image 退出码: $exit")
             if (exit == 0) {
                 val job = ImageJob(

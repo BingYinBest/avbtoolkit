@@ -168,21 +168,21 @@ class SettingsViewModel(
 
     fun initToolchain() {
         viewModelScope.launch(Dispatchers.IO) {
-            templateApp.toolchainManager.ensureReady()
+            runCatching { templateApp.toolchainManager.ensureReady() }
             refreshToolchainState()
         }
     }
 
     fun selfCheckToolchain() {
         viewModelScope.launch(Dispatchers.IO) {
-            val versions = templateApp.toolchainManager.selfCheck()
+            val versions = runCatching { templateApp.toolchainManager.selfCheck() }.getOrDefault(emptyMap())
             _uiState.update { it.copy(toolchainVersions = versions) }
         }
     }
 
     fun clearToolchain() {
         viewModelScope.launch(Dispatchers.IO) {
-            templateApp.toolchainManager.clear()
+            runCatching { templateApp.toolchainManager.clear() }
             _uiState.update { it.copy(toolchainReady = false, toolchainVersions = emptyMap()) }
         }
     }

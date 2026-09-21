@@ -49,8 +49,8 @@ class HomeViewModel : ViewModel() {
         if (_uiState.value.toolchain.initializing) return
         viewModelScope.launch {
             _uiState.update { it.copy(toolchain = it.toolchain.copy(initializing = true)) }
-            val ok = toolchain.ensureReady()
-            val versions = if (ok) toolchain.selfCheck() else emptyMap()
+            val ok = runCatching { toolchain.ensureReady() }.getOrDefault(false)
+            val versions = if (ok) runCatching { toolchain.selfCheck() }.getOrDefault(emptyMap()) else emptyMap()
             _uiState.update {
                 it.copy(toolchain = ToolchainUiState(ready = ok, initializing = false, versions = versions))
             }
@@ -59,7 +59,7 @@ class HomeViewModel : ViewModel() {
 
     fun selfCheck() {
         viewModelScope.launch {
-            val versions = toolchain.selfCheck()
+            val versions = runCatching { toolchain.selfCheck() }.getOrDefault(emptyMap())
             _uiState.update { it.copy(toolchain = it.toolchain.copy(versions = versions)) }
         }
     }
