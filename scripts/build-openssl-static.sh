@@ -27,13 +27,11 @@ curl -fL --retry 3 -o "$WORK/openssl.tar.gz" \
 tar xzf "$WORK/openssl.tar.gz" -C "$WORK"
 cd "$WORK/openssl-$OPENSSL_VERSION"
 
-echo "    配置并编译（android-aarch64）"
+echo "    配置并编译（android-arm64）"
 export ANDROID_NDK_ROOT="$NDK"
 export PATH="$TOOLCHAIN/bin:$PATH"
 export CC="$TOOLCHAIN/bin/aarch64-linux-android21-clang"
-./Configure -static no-shared no-tests no-ui-console \
-  --cross-compile-prefix="$TOOLCHAIN/bin/aarch64-linux-android21-" \
-  android-aarch64
+./Configure -static no-shared no-tests no-ui-console android-arm64
 make -j"$(nproc)" build_libs apps/openssl 2>&1 | tail -80
 
 mkdir -p "$(dirname "$OUT")"
