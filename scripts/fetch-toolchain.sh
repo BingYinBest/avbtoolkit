@@ -38,7 +38,7 @@ if [ ! -e "$PYROOT/bin/python3.10" ] && [ -e "$PYROOT/bin/python3" ]; then
   ln "$PYROOT/bin/python3" "$PYROOT/bin/python3.10"
 fi
 [ -x "$PYROOT/bin/python3.10" ] || { echo "python 可执行文件缺失" >&2; exit 1; }
-cp "$PYROOT/bin/python3.10" "$OUT/jni/arm64-v8a/python3.10"
+cp "$PYROOT/bin/python3.10" "$OUT/jni/arm64-v8a/libvbm_python.so"
 # 标准库打包为 python/lib/python3.10 结构（PYTHONHOME 指向 python/ 根）
 rm -rf pylib && mkdir -p pylib/python
 cp -r "$PYROOT/lib" pylib/python/lib
@@ -47,14 +47,14 @@ rm -rf pysrc pylib python.tar python.tar.zst
 
 # ---------- 2. 静态 openssl（aarch64，NDK） ----------
 echo "==> OpenSSL"
-bash "$ROOT/scripts/build-openssl-static.sh" "$OUT/jni/arm64-v8a/openssl"
+bash "$ROOT/scripts/build-openssl-static.sh" "$OUT/jni/arm64-v8a/libvbm_openssl.so"
 
 # ---------- 3. fec 静态二进制（用户仓库 release） ----------
 echo "==> fec"
-curl -fL --retry 3 -o "$OUT/jni/arm64-v8a/fec" \
+curl -fL --retry 3 -o "$OUT/jni/arm64-v8a/libvbm_fec.so" \
   "https://github.com/BingYinBest/fec/releases/download/$FEC_VERSION/fec-aarch64"
-echo "$FEC_SHA256  $OUT/jni/arm64-v8a/fec" | sha256sum -c -
-chmod +x "$OUT/jni/arm64-v8a/fec"
+echo "$FEC_SHA256  $OUT/jni/arm64-v8a/libvbm_fec.so" | sha256sum -c -
+chmod +x "$OUT/jni/arm64-v8a/libvbm_fec.so"
 
 # ---------- 4. avbtool.py（脚本 → assets，运行时复制到 filesDir） ----------
 echo "==> avbtool"
