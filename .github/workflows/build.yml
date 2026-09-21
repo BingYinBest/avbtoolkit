@@ -99,12 +99,16 @@ jobs:
           java-version: '21'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install SDK platform
         run: |
-          sdkmanager --install "platforms;android-37" "build-tools;37.0.0"
-          yes | sdkmanager --licenses || true
+          export ANDROID_SDK_ROOT="$RUNNER_TEMP/android-sdk"
+          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
+          curl -fsSL -o /tmp/cmdline-tools.zip "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip"
+          unzip -q /tmp/cmdline-tools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
+          mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-37" "build-tools;37.0.0"
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
 
       - name: Build APKs
         env:
@@ -163,33 +167,47 @@ jobs:
 
       - name: avbtool sign → verify → info (host native toolchain)
         run: |
-          cd "$RUNNER_TEMP"
-          # host 版 fec（用户仓库 native 构建），供 avbtool 的 FEC 链路使用
-          git clone --depth 1 https://github.com/BingYinBest/fec.git
-          bash fec/build.sh native
-          export PATH="$PWD/fec/out/native:$PATH"
-          # avbtool.py 取自 toolchain artifact（其余 aarch64 二进制由 qemu 冒烟验证）
-          unzip -q -o "$GITHUB_WORKSPACE/toolchain-artifact/toolchain.zip" bin/avbtool.py
-          # 生成测试密钥
-          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out key.pem
-          # 哈希 footer（boot）
-          dd if=/dev/urandom of=boot.img bs=4096 count=64
-          python3 bin/avbtool.py add_hash_footer \
-            --image boot.img --partition_size 524288 --partition_name boot \
-            --algorithm SHA256_RSA2048 --key key.pem --hash_algorithm sha256
-          python3 bin/avbtool.py info_image --image boot.img | grep "Algorithm: SHA256_RSA2048"
-          python3 bin/avbtool.py verify_image --image boot.img --key key.pem
-          # 哈希树 + FEC（system，走 host fec）
-          dd if=/dev/urandom of=system.img bs=4096 count=128
-          python3 bin/avbtool.py add_hashtree_footer \
-            --image system.img --partition_size 1048576 --partition_name system \
-            --algorithm SHA256_RSA2048 --key key.pem --fec_num_roots 2 --hash_algorithm sha256
-          python3 bin/avbtool.py verify_image --image system.img --key key.pem
-          # 禁验 vbmeta
-          python3 bin/avbtool.py make_vbmeta_image \
-            --output vbmeta-disable.img --algorithm NONE --flags 2 --padding_size 4096
-          python3 bin/avbtool.py verify_image --image vbmeta-disable.img
-          echo "SMOKE OK"
+          set +e
+          bash -c '
+            cd "$RUNNER_TEMP"
+            # host 版 fec（用户仓库 native 构建），供 avbtool 的 FEC 链路使用
+            git clone --depth 1 https://github.com/BingYinBest/fec.git
+            bash fec/build.sh native
+            export PATH="$PWD/fec/out/native:$PATH"
+            # avbtool.py 取自 toolchain artifact（其余 aarch64 二进制由 qemu 冒烟验证）
+            unzip -q -o "$GITHUB_WORKSPACE/toolchain-artifact/toolchain.zip" bin/avbtool.py
+            # 生成测试密钥
+            openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out key.pem
+            # 哈希 footer（boot）
+            dd if=/dev/urandom of=boot.img bs=4096 count=64
+            python3 bin/avbtool.py add_hash_footer \
+              --image boot.img --partition_size 524288 --partition_name boot \
+              --algorithm SHA256_RSA2048 --key key.pem --hash_algorithm sha256
+            python3 bin/avbtool.py info_image --image boot.img | grep "Algorithm: SHA256_RSA2048"
+            python3 bin/avbtool.py verify_image --image boot.img --key key.pem
+            # 哈希树 + FEC（system，走 host fec）
+            dd if=/dev/urandom of=system.img bs=4096 count=128
+            python3 bin/avbtool.py add_hashtree_footer \
+              --image system.img --partition_size 1048576 --partition_name system \
+              --algorithm SHA256_RSA2048 --key key.pem --fec_num_roots 2 --hash_algorithm sha256
+            python3 bin/avbtool.py verify_image --image system.img --key key.pem
+            # 禁验 vbmeta
+            python3 bin/avbtool.py make_vbmeta_image \
+              --output vbmeta-disable.img --algorithm NONE --flags 2 --padding_size 4096
+            python3 bin/avbtool.py verify_image --image vbmeta-disable.img
+            echo "SMOKE OK"
+          ' > build/smoke-host.log 2>&1
+          RC=$?
+          tail -60 build/smoke-host.log
+          exit $RC
+
+      - name: Upload host smoke log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-host-log
+          path: build/smoke-host.log
+          if-no-files-found: ignore
 
   release:
     name: publish release
