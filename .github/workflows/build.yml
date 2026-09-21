@@ -51,9 +51,24 @@ jobs:
       - name: Smoke test — run aarch64 binaries via qemu
         run: |
           sudo apt-get install -y --no-install-recommends qemu-user-static
-          qemu-aarch64-static build/toolchain/python/bin/python3.10 --version
-          qemu-aarch64-static build/toolchain/bin/openssl version
-          qemu-aarch64-static build/toolchain/bin/fec --help >/dev/null
+          mkdir -p build
+          set +e
+          qemu-aarch64-static build/toolchain/python/bin/python3.10 --version > build/smoke.log 2>&1
+          echo "python exit=$?" >> build/smoke.log
+          qemu-aarch64-static build/toolchain/bin/openssl version >> build/smoke.log 2>&1
+          echo "openssl exit=$?" >> build/smoke.log
+          qemu-aarch64-static build/toolchain/bin/fec --help >/dev/null 2>> build/smoke.log
+          echo "fec exit=$?" >> build/smoke.log
+          cat build/smoke.log
+          grep -q "Python 3" build/smoke.log && grep -q "OpenSSL" build/smoke.log || exit 1
+
+      - name: Upload smoke log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-log
+          path: build/smoke.log
+          if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
         with:
