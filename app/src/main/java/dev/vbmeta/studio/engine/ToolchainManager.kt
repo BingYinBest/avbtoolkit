@@ -21,31 +21,35 @@ sealed class ToolchainStatus {
 }
 
 /**
- * 管理内嵌工具链（assets/toolchain.zip → filesDir/toolchain）。
- * 工具链包含：musl 静态 python、静态 openssl、fec、avbtool.py。
+ * 工具链管理。
+ *
+ * 三个可执行文件（python3.10/openssl/fec）随 APK 走 jniLibs → nativeLibraryDir：
+ * 系统安装时自动赋执行权限（与 .so 同一机制），规避部分 ROM（如 ZUI）上
+ * app_data_file 不可执行（File.setExecutable 与 chmod 均无效）的问题。
+ *
+ * 非可执行内容（python 标准库、avbtool.py 脚本）从 assets 解压到 filesDir，
+ * 仅需读取权限。
  */
 class ToolchainManager(private val context: Context) {
 
+    private val nativeLibDir: String = context.applicationInfo.nativeLibraryDir
     private val rootDir: File = File(context.filesDir, "toolchain")
-    private val binDir: File = File(rootDir, "bin")
-    private val pythonBin: File = File(rootDir, "python/bin")
 
     companion object {
-        const val ASSET_ZIP = "toolchain.zip"
+        const val PYLIB_ZIP = "toolchain_pylib.zip"
+        const val AVBTOOL_ASSET = "avbtool.py"
         const val VERSION_FILE = "VERSION"
-        /** 与 CI 打包的工具链内容对应，升级工具链时需同步 +1。 */
         const val ASSET_VERSION = "1"
-        private const val EXECUTABLES = "bin/openssl,bin/fec,bin/avbtool.py,python/bin/python3.10"
     }
 
-    /** 当前工具链状态：文件齐备且版本匹配才算 Ready。 */
+    /** 当前工具链状态：native 二进制由系统保证，仅检查存在性；标准库/脚本检查解压产物。 */
     fun status(): ToolchainStatus {
-        val expected = EXECUTABLES.split(",")
-        val allPresent = expected.all {
-            val f = File(rootDir, it)
-            f.isFile && f.canExecute()
+        val nativesOk = listOf("python3.10", "openssl", "fec")
+            .all { File(nativeLibDir, it).isFile }
+        if (!nativesOk) return ToolchainStatus.Missing
+        if (!File(rootDir, "python/lib").isDirectory || !File(rootDir, AVBTOOL_ASSET).isFile) {
+            return ToolchainStatus.Missing
         }
-        if (!allPresent) return ToolchainStatus.Missing
         val versionFile = File(rootDir, VERSION_FILE)
         if (!versionFile.exists()) return ToolchainStatus.Missing
         val actual = versionFile.readText().trim()
@@ -56,7 +60,7 @@ class ToolchainManager(private val context: Context) {
         }
     }
 
-    /** 确保工具链就绪；未就绪则从 assets 解压。返回是否就绪。 */
+    /** 确保工具链就绪；缺失时从 assets 解压标准库与脚本。native 二进制无需处理。 */
     suspend fun ensureReady(onProgress: (done: Int) -> Unit = {}): Boolean = withContext(Dispatchers.IO) {
         if (status() is ToolchainStatus.Ready) return@withContext true
         val ok = runCatching {
@@ -66,21 +70,21 @@ class ToolchainManager(private val context: Context) {
         ok && status() is ToolchainStatus.Ready
     }
 
-    /** 清空已解压的工具链，释放磁盘空间。 */
+    /** 清空解压内容（标准库/脚本副本），释放磁盘。native 二进制由系统管理，不可删。 */
     fun clear() {
         rootDir.deleteRecursively()
     }
 
     fun paths(): ToolchainPaths = ToolchainPaths(
-        python = File(pythonBin, "python3.10").absolutePath,
-        openssl = File(binDir, "openssl").absolutePath,
-        fec = File(binDir, "fec").absolutePath,
-        avbtool = File(binDir, "avbtool.py").absolutePath,
+        python = File(nativeLibDir, "python3.10").absolutePath,
+        openssl = File(nativeLibDir, "openssl").absolutePath,
+        fec = File(nativeLibDir, "fec").absolutePath,
+        avbtool = File(rootDir, AVBTOOL_ASSET).absolutePath,
     )
 
-    /** 进程环境变量：把工具链 bin 目录置于 PATH 前，使 avbtool 能找到 openssl/fec。 */
+    /** 进程环境变量：nativeLibraryDir 置入 PATH；PYTHONHOME 指向解压的标准库。 */
     fun env(): Map<String, String> = mapOf(
-        "PATH" to "${binDir.absolutePath}:${pythonBin.absolutePath}:${System.getenv("PATH") ?: ""}",
+        "PATH" to "$nativeLibDir:${System.getenv("PATH") ?: ""}",
         "PYTHONHOME" to File(rootDir, "python").absolutePath,
     )
 
@@ -107,7 +111,8 @@ class ToolchainManager(private val context: Context) {
         rootDir.deleteRecursively()
         rootDir.mkdirs()
 
-        val zin = ZipInputStream(context.assets.open(ASSET_ZIP))
+        // python 标准库（zip 内部路径 python/lib/python3.10/...）
+        val zin = ZipInputStream(context.assets.open(PYLIB_ZIP))
         var count = 0
         try {
             var entry = zin.nextEntry
@@ -128,24 +133,11 @@ class ToolchainManager(private val context: Context) {
             zin.close()
         }
 
-        listOf(
-            File(pythonBin, "python3.10"),
-            File(binDir, "openssl"),
-            File(binDir, "fec"),
-            File(binDir, "avbtool.py"),
-        ).forEach { makeExecutable(it) }
+        // avbtool.py（纯脚本，由 python 解释执行，无需 exec 权限）
+        context.assets.open(AVBTOOL_ASSET).use { input ->
+            File(rootDir, AVBTOOL_ASSET).outputStream().use { output -> input.copyTo(output) }
+        }
 
         File(rootDir, VERSION_FILE).writeText(ASSET_VERSION)
-    }
-
-    /**
-     * 确保文件可执行。File.setExecutable 在部分 ROM（如 ZUI）上不生效，
-     * 需要 fallback 到系统 chmod；仍失败则交给调用方处理。
-     */
-    private fun makeExecutable(file: File) {
-        if (file.setExecutable(true, false) && file.canExecute()) return
-        runCatching {
-            ProcessBuilder("/system/bin/chmod", "755", file.absolutePath).start().waitFor()
-        }
     }
 }

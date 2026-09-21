@@ -1,20 +1,16 @@
 #!/usr/bin/env bash
-# 组装内嵌工具链 toolchain.zip：musl 静态 Python + 静态 openssl + fec + avbtool.py
-#
-# 产物结构（与 ToolchainManager 期望一致）：
-#   toolchain.zip
-#   ├── VERSION                    工具链版本号（与 ASSET_VERSION 对齐）
-#   ├── python/bin/python3.10     musl 静态 Python 可执行
-#   ├── python/lib/...            Python 标准库
-#   └── bin/{openssl,fec,avbtool.py}
+# 组装内嵌工具链：
+#   jni/arm64-v8a/{python3.10,openssl,fec}   可执行文件 → APK lib/（nativeLibraryDir，系统赋执行权限）
+#   assets/toolchain_pylib.zip                python 标准库（运行时解压，仅读取）
+#   assets/avbtool.py                         脚本（由 python 解释执行）
 #
 # 用法：bash scripts/fetch-toolchain.sh
-# 依赖：curl、tar、zstd、python3（解压/打包）、sha256sum
+# 依赖：curl、tar、zstd、python3、sha256sum
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-OUT="$ROOT/build/toolchain"
-mkdir -p "$OUT/bin" "$OUT/python" "$ROOT/build/downloads"
+OUT="$ROOT/build/final"
+mkdir -p "$OUT/jni/arm64-v8a" "$OUT/assets" "$ROOT/build/downloads"
 cd "$ROOT/build/downloads"
 
 PYTHON_RELEASE="20260901"
@@ -33,43 +29,38 @@ PY_URL="$(curl -fsSL "https://api.github.com/repos/astral-sh/python-build-standa
 echo "    下载: $PY_URL"
 curl -fL --retry 3 -o python.tar.zst "$PY_URL"
 zstd -d -f python.tar.zst -o python.tar
-mkdir -p "$OUT/python" "$ROOT/build/downloads/pysrc"
-tar xf python.tar -C "$ROOT/build/downloads/pysrc" --strip-components=1
-# full 变体目录结构不固定（可能嵌套），find 定位可执行文件后重组为 bin/ + lib/ 布局
-# 注意不能用 -type f：bin/python3 是指向 python3.10 的符号链接
-PYEXE="$(find "$ROOT/build/downloads/pysrc" -maxdepth 4 \( -name 'python3.10' -o -name 'python3' \) | head -1)"
-if [ -z "$PYEXE" ]; then
-  echo "python 可执行文件缺失，包结构：" >&2
-  find "$ROOT/build/downloads/pysrc" -maxdepth 3 | head -40 >&2
-  exit 1
+rm -rf pysrc && mkdir pysrc
+tar xf python.tar -C pysrc --strip-components=1
+# full 变体结构不固定，定位 install 目录
+PYROOT="$(find pysrc -maxdepth 3 -type d -name install | head -1)"
+[ -n "$PYROOT" ] || { echo "python 结构异常" >&2; find pysrc -maxdepth 2 | head -30 >&2; exit 1; }
+if [ ! -e "$PYROOT/bin/python3.10" ] && [ -e "$PYROOT/bin/python3" ]; then
+  ln "$PYROOT/bin/python3" "$PYROOT/bin/python3.10"
 fi
-PYROOT="$(dirname "$(dirname "$PYEXE")")"
-cp -r "$PYROOT/bin" "$OUT/python/bin"
-cp -r "$PYROOT/lib" "$OUT/python/lib"
-if [ ! -e "$OUT/python/bin/python3.10" ] && [ -e "$OUT/python/bin/python3" ]; then
-  ln "$OUT/python/bin/python3" "$OUT/python/bin/python3.10"
-fi
-[ -x "$OUT/python/bin/python3.10" ] || { echo "python 可执行文件缺失" >&2; exit 1; }
-rm -rf "$ROOT/build/downloads/pysrc" python.tar python.tar.zst
+[ -x "$PYROOT/bin/python3.10" ] || { echo "python 可执行文件缺失" >&2; exit 1; }
+cp "$PYROOT/bin/python3.10" "$OUT/jni/arm64-v8a/python3.10"
+# 标准库打包为 python/lib/python3.10 结构（PYTHONHOME 指向 python/ 根）
+rm -rf pylib && mkdir -p pylib/python
+cp -r "$PYROOT/lib" pylib/python/lib
+(cd pylib && python3 -m zipfile -c "$OUT/assets/toolchain_pylib.zip" python)
+rm -rf pysrc pylib python.tar python.tar.zst
 
-# ---------- 2. 静态 openssl（aarch64） ----------
+# ---------- 2. 静态 openssl（aarch64，NDK） ----------
 echo "==> OpenSSL"
-bash "$ROOT/scripts/build-openssl-static.sh" "$OUT/bin/openssl"
+bash "$ROOT/scripts/build-openssl-static.sh" "$OUT/jni/arm64-v8a/openssl"
 
 # ---------- 3. fec 静态二进制（用户仓库 release） ----------
 echo "==> fec"
-curl -fL --retry 3 -o "$OUT/bin/fec" \
+curl -fL --retry 3 -o "$OUT/jni/arm64-v8a/fec" \
   "https://github.com/BingYinBest/fec/releases/download/$FEC_VERSION/fec-aarch64"
-echo "$FEC_SHA256  $OUT/bin/fec" | sha256sum -c -
-chmod +x "$OUT/bin/fec"
+echo "$FEC_SHA256  $OUT/jni/arm64-v8a/fec" | sha256sum -c -
+chmod +x "$OUT/jni/arm64-v8a/fec"
 
-# ---------- 4. avbtool.py（vendor 于 toolchain/） ----------
+# ---------- 4. avbtool.py（脚本 → assets，运行时复制到 filesDir） ----------
 echo "==> avbtool"
-cp "$ROOT/toolchain/avbtool.py" "$OUT/bin/avbtool.py"
-chmod +x "$OUT/bin/avbtool.py"
+cp "$ROOT/toolchain/avbtool.py" "$OUT/assets/avbtool.py"
 
-# ---------- 5. 版本与打包 ----------
-echo "1" > "$OUT/VERSION"
-(cd "$OUT" && python3 -m zipfile -c toolchain.zip VERSION python bin)
+# ---------- 5. 打包 ----------
+(cd "$OUT" && python3 -m zipfile -c toolchain.zip jni assets)
 echo "==> 完成: $OUT/toolchain.zip"
-ls -la "$OUT/toolchain.zip"
+ls -la "$OUT/jni/arm64-v8a/" "$OUT/assets/"

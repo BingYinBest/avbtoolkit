@@ -53,9 +53,9 @@ jobs:
           sudo apt-get install -y --no-install-recommends qemu-user-static
           mkdir -p build
           set +e
-          qemu-aarch64-static build/toolchain/python/bin/python3.10 --version > build/smoke.log 2>&1
+          qemu-aarch64-static build/final/jni/arm64-v8a/python3.10 --version > build/smoke.log 2>&1
           echo "python exit=$?" >> build/smoke.log
-          qemu-aarch64-static build/toolchain/bin/openssl version >> build/smoke.log 2>&1
+          qemu-aarch64-static build/final/jni/arm64-v8a/openssl version >> build/smoke.log 2>&1
           echo "openssl exit=$?" >> build/smoke.log
           # fec（NDK 静态 bionic）的 TLS 段对齐检查是 qemu-user 的已知限制，真机 bionic loader 正常，此处跳过
           cat build/smoke.log
@@ -87,11 +87,14 @@ jobs:
           name: toolchain
           path: toolchain-artifact
 
-      - name: Install toolchain into app assets
+      - name: Install toolchain into app
         run: |
-          mkdir -p app/src/main/assets
-          cp toolchain-artifact/toolchain.zip app/src/main/assets/toolchain.zip
-          ls -la app/src/main/assets/
+          cd "$RUNNER_TEMP"
+          unzip -q -o "$GITHUB_WORKSPACE/toolchain-artifact/toolchain.zip"
+          mkdir -p "$GITHUB_WORKSPACE/app/src/main/jniLibs" "$GITHUB_WORKSPACE/app/src/main/assets"
+          cp -r jni/arm64-v8a "$GITHUB_WORKSPACE/app/src/main/jniLibs/"
+          cp assets/* "$GITHUB_WORKSPACE/app/src/main/assets/"
+          ls -la "$GITHUB_WORKSPACE/app/src/main/jniLibs/arm64-v8a/" "$GITHUB_WORKSPACE/app/src/main/assets/"
 
       - uses: actions/setup-java@v4
         with:
@@ -177,7 +180,8 @@ jobs:
             bash fec/build.sh native
             export PATH="$PWD/fec/out/native:$PATH"
             # avbtool.py 取自 toolchain artifact（其余 aarch64 二进制由 qemu 冒烟验证）
-            unzip -q -o "$GITHUB_WORKSPACE/toolchain-artifact/toolchain.zip" bin/avbtool.py
+            unzip -q -o "$GITHUB_WORKSPACE/toolchain-artifact/toolchain.zip" assets/avbtool.py
+            mkdir -p bin && mv assets/avbtool.py bin/avbtool.py
             # 生成测试密钥
             openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out key.pem
             # 哈希 footer（boot）
