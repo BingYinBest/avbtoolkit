@@ -29,6 +29,8 @@ cd "$WORK/openssl-$OPENSSL_VERSION"
 
 echo "    配置并编译（android-aarch64）"
 export ANDROID_NDK_ROOT="$NDK"
+export PATH="$TOOLCHAIN/bin:$PATH"
+export CC="$TOOLCHAIN/bin/aarch64-linux-android21-clang"
 ./Configure -static no-shared no-tests no-docs no-ui-console \
   --cross-compile-prefix="$TOOLCHAIN/bin/aarch64-linux-android21-" \
   android-aarch64

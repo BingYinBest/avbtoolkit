@@ -32,7 +32,21 @@ jobs:
       - name: Assemble toolchain.zip
         env:
           NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
-        run: bash scripts/fetch-toolchain.sh
+        run: |
+          mkdir -p build
+          if bash scripts/fetch-toolchain.sh > build/assemble.log 2>&1; then
+            tail -20 build/assemble.log
+          else
+            echo "ASSEMBLE FAILED"; tail -120 build/assemble.log; exit 1
+          fi
+
+      - name: Upload assemble log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: assemble-log
+          path: build/assemble.log
+          if-no-files-found: ignore
 
       - name: Smoke test — run aarch64 binaries via qemu
         run: |
