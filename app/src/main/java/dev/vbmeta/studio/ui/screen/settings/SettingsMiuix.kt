@@ -21,6 +21,7 @@ import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.ContactPage
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.Update
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -28,6 +29,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -117,6 +119,19 @@ fun SettingPagerMiuix(
                             checked = uiState.checkUpdate,
                             onCheckedChange = actions.onSetCheckUpdate
                         )
+                        ArrowPreference(
+                            title = stringResource(id = R.string.settings_check_update_now),
+                            summary = updateSummary(uiState),
+                            startAction = {
+                                Icon(
+                                    Icons.Rounded.SystemUpdate,
+                                    modifier = Modifier.padding(end = 6.dp),
+                                    contentDescription = stringResource(id = R.string.settings_check_update_now),
+                                    tint = colorScheme.onBackground
+                                )
+                            },
+                            onClick = { onUpdateClick(uiState, actions, LocalUriHandler.current) }
+                        )
                     }
 
                     Card(
@@ -182,6 +197,27 @@ fun SettingPagerMiuix(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun updateSummary(uiState: SettingsUiState): String = when {
+    uiState.checkingUpdate -> stringResource(R.string.settings_checking)
+    uiState.latestVersion.versionCode > 0 && uiState.latestVersion.versionCode > uiState.currentVersionCode ->
+        stringResource(R.string.settings_check_new, uiState.latestVersion.versionCode)
+    else -> stringResource(R.string.settings_check_latest)
+}
+
+private fun onUpdateClick(
+    uiState: SettingsUiState,
+    actions: SettingsScreenActions,
+    uriHandler: androidx.compose.ui.platform.UriHandler,
+) {
+    val info = uiState.latestVersion
+    if (info.versionCode > 0 && info.downloadUrl.isNotEmpty() && info.versionCode > uiState.currentVersionCode) {
+        uriHandler.openUri(info.downloadUrl)
+    } else {
+        actions.onCheckUpdate()
     }
 }
 

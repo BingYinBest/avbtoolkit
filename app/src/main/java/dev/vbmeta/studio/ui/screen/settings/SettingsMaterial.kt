@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.ContactPage
 import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material.icons.rounded.Dashboard
 import androidx.compose.material3.Button
@@ -39,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -90,6 +92,14 @@ fun SettingPagerMaterial(
                         checked = uiState.checkUpdate,
                         onCheckedChange = actions.onSetCheckUpdate
                     )
+                    add {
+                        SegmentedListItem(
+                            onClick = { onUpdateClick(uiState, actions, LocalUriHandler.current) },
+                            headlineContent = { Text(stringResource(id = R.string.settings_check_update_now)) },
+                            supportingContent = { Text(updateSummary(uiState)) },
+                            leadingContent = { Icon(Icons.Filled.SystemUpdate, null) },
+                        )
+                    }
                 }
             )
 
@@ -197,6 +207,27 @@ private fun ToolchainCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun updateSummary(uiState: SettingsUiState): String = when {
+    uiState.checkingUpdate -> stringResource(R.string.settings_checking)
+    uiState.latestVersion.versionCode > 0 && uiState.latestVersion.versionCode > uiState.currentVersionCode ->
+        stringResource(R.string.settings_check_new, uiState.latestVersion.versionCode)
+    else -> stringResource(R.string.settings_check_latest)
+}
+
+private fun onUpdateClick(
+    uiState: SettingsUiState,
+    actions: SettingsScreenActions,
+    uriHandler: androidx.compose.ui.platform.UriHandler,
+) {
+    val info = uiState.latestVersion
+    if (info.versionCode > 0 && info.downloadUrl.isNotEmpty() && info.versionCode > uiState.currentVersionCode) {
+        uriHandler.openUri(info.downloadUrl)
+    } else {
+        actions.onCheckUpdate()
     }
 }
 

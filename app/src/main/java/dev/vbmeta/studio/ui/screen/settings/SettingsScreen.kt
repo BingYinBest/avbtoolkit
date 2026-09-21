@@ -34,6 +34,7 @@ fun SettingPager(
         onToolchainInit = viewModel::initToolchain,
         onToolchainSelfCheck = viewModel::selfCheckToolchain,
         onToolchainClear = viewModel::clearToolchain,
+        onCheckUpdate = viewModel::checkForUpdate,
     )
 
     when (LocalUiMode.current) {

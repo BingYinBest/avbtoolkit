@@ -139,4 +139,8 @@
     <string name="settings_toolchain_init">Initialize</string>
     <string name="settings_toolchain_selfcheck">Self-check</string>
     <string name="settings_toolchain_clear">Clear</string>
+    <string name="settings_check_update_now">Check now</string>
+    <string name="settings_checking">Checking…</string>
+    <string name="settings_check_latest">Up to date</string>
+    <string name="settings_check_new">New version %1$d</string>
     </resources>

@@ -132,4 +132,8 @@
     <string name="settings_toolchain_init">初始化</string>
     <string name="settings_toolchain_selfcheck">自检</string>
     <string name="settings_toolchain_clear">清理</string>
+    <string name="settings_check_update_now">立即检查</string>
+    <string name="settings_checking">检查中…</string>
+    <string name="settings_check_latest">已是最新版本</string>
+    <string name="settings_check_new">发现新版本 %1$d</string>
     </resources>
