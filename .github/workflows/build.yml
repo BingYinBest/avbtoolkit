@@ -1,0 +1,152 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  toolchain:
+    name: toolchain (aarch64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends zstd file
+
+      - name: Assemble toolchain.zip
+        run: bash scripts/fetch-toolchain.sh
+
+      - name: Smoke test — run aarch64 binaries via qemu
+        run: |
+          sudo apt-get install -y --no-install-recommends qemu-user-static
+          qemu-aarch64-static build/toolchain/python/bin/python3.10 --version
+          qemu-aarch64-static build/toolchain/bin/openssl version
+          qemu-aarch64-static build/toolchain/bin/fec --help >/dev/null
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: toolchain
+          path: build/toolchain/toolchain.zip
+          if-no-files-found: error
+
+  android:
+    name: android build
+    runs-on: ubuntu-latest
+    needs: toolchain
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: toolchain
+          path: toolchain-artifact
+
+      - name: Install toolchain into app assets
+        run: |
+          mkdir -p app/src/main/assets
+          cp toolchain-artifact/toolchain.zip app/src/main/assets/toolchain.zip
+          ls -la app/src/main/assets/
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK platform
+        run: |
+          sdkmanager --install "platforms;android-37" "build-tools;37.0.0"
+          yes | sdkmanager --licenses || true
+
+      - name: Build APKs
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          GRADLE_ARGS=":app:assembleDebug"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > keystore.jks
+            GRADLE_ARGS="$GRADLE_ARGS :app:assembleRelease \
+              -PKEYSTORE_FILE=$PWD/keystore.jks \
+              -PKEYSTORE_PASSWORD=$KEYSTORE_PASSWORD \
+              -PKEY_ALIAS=$KEY_ALIAS \
+              -PKEY_PASSWORD=$KEY_PASSWORD"
+          fi
+          ./gradlew $GRADLE_ARGS --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apks
+          path: app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+
+  smoke:
+    name: avbtool end-to-end
+    runs-on: ubuntu-latest
+    needs: toolchain
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: toolchain
+          path: toolchain-artifact
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends python3
+
+      - name: avbtool sign → verify → info
+        run: |
+          cd "$RUNNER_TEMP"
+          unzip -q -o "$GITHUB_WORKSPACE/toolchain-artifact/toolchain.zip"
+          export PATH="$PWD/bin:$PATH"
+          # 生成测试密钥
+          bin/openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out key.pem
+          # 哈希 footer（boot）
+          dd if=/dev/urandom of=boot.img bs=4096 count=64
+          python3 bin/avbtool.py add_hash_footer \
+            --image boot.img --partition_size 524288 --partition_name boot \
+            --algorithm SHA256_RSA2048 --key key.pem --hash_algorithm sha256
+          python3 bin/avbtool.py info_image --image boot.img | grep "Algorithm: SHA256_RSA2048"
+          python3 bin/avbtool.py verify_image --image boot.img --key key.pem
+          # 哈希树 + FEC（system，走 fec 二进制）
+          dd if=/dev/urandom of=system.img bs=4096 count=128
+          python3 bin/avbtool.py add_hashtree_footer \
+            --image system.img --partition_size 1048576 --partition_name system \
+            --algorithm SHA256_RSA2048 --key key.pem --fec_num_roots 2 --hash_algorithm sha256
+          python3 bin/avbtool.py verify_image --image system.img --key key.pem
+          # 禁验 vbmeta
+          python3 bin/avbtool.py make_vbmeta_image \
+            --output vbmeta-disable.img --algorithm NONE --flags 2 --padding_size 4096
+          python3 bin/avbtool.py verify_image --image vbmeta-disable.img
+          echo "SMOKE OK"
+
+  release:
+    name: publish release
+    runs-on: ubuntu-latest
+    needs: [android]
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: apks
+          path: apks
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: apks/**/*.apk

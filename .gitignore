@@ -1,0 +1,15 @@
+*.iml
+.gradle
+.idea
+.kotlin
+.DS_Store
+build
+captures
+.cxx
+local.properties
+key.jks
+
+# 本地构建产物与内嵌工具链（CI 生成）
+build/
+app/src/main/assets/toolchain.zip
+local.properties
