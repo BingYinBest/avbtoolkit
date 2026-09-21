@@ -25,9 +25,10 @@ FEC_SHA256="7467908451cae1dd6bc23c36b994bd0885316d0ddd5c526e133c0ded77fc397b"
 # ---------- 1. musl 静态 Python（aarch64） ----------
 echo "==> Python"
 PY_URL=""
+# 注意：GitHub API 的 JSON 中资产 URL 的 "+" 被编码为 %2B，需用 %2B 匹配
 for pattern in 'install_only_stripped' 'install_only' 'debug%2Bstatic-full'; do
   PY_URL="$(curl -fsSL "https://api.github.com/repos/astral-sh/python-build-standalone/releases/tags/$PYTHON_RELEASE" \
-    | grep -o "https://[^\"]*cpython-${PYTHON_VERSION}+${PYTHON_RELEASE}-aarch64-unknown-linux-musl[^\"]*${pattern}[^\"]*" \
+    | grep -o "https://[^\"]*cpython-${PYTHON_VERSION}%2B${PYTHON_RELEASE}-aarch64-unknown-linux-musl[^\"]*${pattern}[^\"]*" \
     | head -1 || true)"
   [ -n "$PY_URL" ] && break
 done
