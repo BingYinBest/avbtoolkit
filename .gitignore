@@ -13,3 +13,6 @@ key.jks
 build/
 app/src/main/assets/toolchain.zip
 local.properties
+
+# AI 配置与附件，不入库
+.aicode/
