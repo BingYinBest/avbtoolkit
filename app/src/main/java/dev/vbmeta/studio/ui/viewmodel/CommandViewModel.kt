@@ -318,45 +318,26 @@ class CommandViewModel : ViewModel() {
                 return sb.toString() to null
             }
 
+            "update_partition_descriptor" -> {
+                val image = file("image") ?: return missing("image") to null
+                val partitionImage = file("partition_image") ?: return missing("partition_image") to null
+                val exit = avb.updatePartitionDescriptor(image, partitionImage, onLine = onLine)
+                sb.appendLine("update_partition_descriptor 退出码: $exit")
+                return sb.toString().ifBlank { if (exit == 0) "完成 ✓" else "失败" } to null
+            }
+
             "resign_image" -> {
                 val image = file("image") ?: return missing("image") to null
                 val key = file("key") ?: return missing("key") to null
-                // 1) 擦除 footer（可选保留原哈希树）
-                val e1 = avb.eraseFooter(image, bool("keep_hashtree"), onLine)
-                sb.appendLine("erase_footer 退出码: $e1")
-                if (e1 != 0) return sb.toString() to image
-                // 2) 用新密钥重新签名
-                if (bool("hashtree")) {
-                    val e2 = avb.addHashtreeFooter(
-                        AvbTool.HashtreeFooterParams(
-                            imagePath = image,
-                            partitionSize = num("partition_size") ?: 0L,
-                            partitionName = f["partition_name"] ?: "boot",
-                            keyPath = key,
-                            algorithm = f["algorithm"]?.takeIf { it.isNotBlank() } ?: "SHA256_RSA4096",
-                            rollbackIndex = num("rollback_index") ?: 0,
-                            hashAlgorithm = f["hash_algorithm"]?.takeIf { it.isNotBlank() } ?: "sha256",
-                            fecNumRoots = int("fec_num_roots"),
-                        ),
-                        onLine,
-                    )
-                    sb.appendLine("add_hashtree_footer 退出码: $e2")
-                } else {
-                    val e2 = avb.addHashFooter(
-                        AvbTool.HashFooterParams(
-                            imagePath = image,
-                            partitionSize = num("partition_size") ?: 0L,
-                            partitionName = f["partition_name"] ?: "boot",
-                            keyPath = key,
-                            algorithm = f["algorithm"]?.takeIf { it.isNotBlank() } ?: "SHA256_RSA4096",
-                            rollbackIndex = num("rollback_index") ?: 0,
-                            hashAlgorithm = f["hash_algorithm"]?.takeIf { it.isNotBlank() } ?: "sha256",
-                        ),
-                        onLine,
-                    )
-                    sb.appendLine("add_hash_footer 退出码: $e2")
-                }
-                return sb.toString() to image
+                val exit = avb.resignImage(
+                    image,
+                    key,
+                    f["algorithm"]?.takeIf { it.isNotBlank() } ?: "SHA256_RSA4096",
+                    num("rollback_index") ?: 0,
+                    onLine,
+                )
+                sb.appendLine("resign_image 退出码: $exit")
+                return sb.toString().ifBlank { if (exit == 0) "完成 ✓" else "失败" } to image
             }
 
             else -> return "未知命令：${cmd.id}" to null

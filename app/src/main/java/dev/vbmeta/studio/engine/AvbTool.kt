@@ -359,6 +359,51 @@ class AvbTool(private val toolchain: ToolchainManager) {
         return CommandRunner.run(cmd, env(), onLine)
     }
 
+    /** 更新 vbmeta 中某分区的 hash/hashtree 描述符。 */
+    suspend fun updatePartitionDescriptor(
+        imagePath: String,
+        partitionImagePath: String,
+        outputPath: String? = null,
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("update_partition_descriptor")
+            add("--image"); add(imagePath)
+            add("--partition_image"); add(partitionImagePath)
+            outputPath?.let { add("--output"); add(it) }
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
+    /** 用新密钥重新签名带 footer 的镜像（官方 resign_image）。 */
+    suspend fun resignImage(
+        imagePath: String,
+        keyPath: String,
+        algorithm: String,
+        rollbackIndex: Long = 0,
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("resign_image")
+            add("--image"); add(imagePath)
+            add("--key"); add(keyPath)
+            add("--algorithm"); add(algorithm)
+            add("--rollback_index"); add(rollbackIndex.toString())
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
+    /** 检查系统 openssl 是否支持 ML-DSA（后量子签名）。 */
+    suspend fun checkMldsaSupport(onLine: (String) -> Unit = {}): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("check_mldsa_support")
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
     /** 创建 ATX 证书（avb_cert 扩展）。 */
     suspend fun makeCertificate(
         outputPath: String,

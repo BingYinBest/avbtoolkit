@@ -1,6 +1,7 @@
 package dev.vbmeta.studio.ui.command
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -54,6 +55,13 @@ fun CommandPagerHost(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
+
+    // 二级表单页优先拦截返回键：关闭表单而非切换 pager tab
+    if (state.command != null) {
+        BackHandler {
+            viewModel.dismiss()
+        }
+    }
 
     var pickKey by remember { mutableStateOf<String?>(null) }
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
