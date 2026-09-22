@@ -305,6 +305,60 @@ class CommandViewModel : ViewModel() {
                 return sb.toString().ifBlank { "完成 ✓" } to out
             }
 
+            "check_mldsa_support" -> {
+                val avbtoolFile = File(File(app.filesDir, "toolchain"), "avbtool.py")
+                val content = if (avbtoolFile.exists()) avbtoolFile.readText() else ""
+                val hasMldsa = content.contains("MLDSA") || content.contains("ML_DSA") || content.contains("ML-DSA")
+                sb.appendLine(if (hasMldsa) {
+                    "当前 avbtool 支持 ML-DSA（后量子签名）"
+                } else {
+                    "当前 avbtool 不支持 ML-DSA（仅经典 RSA：SHA256/SHA512 × RSA2048/4096/8192）"
+                })
+                sb.appendLine("说明：AOSP 官方 avbtool 目前未加入后量子算法。")
+                return sb.toString() to null
+            }
+
+            "resign_image" -> {
+                val image = file("image") ?: return missing("image") to null
+                val key = file("key") ?: return missing("key") to null
+                // 1) 擦除 footer（可选保留原哈希树）
+                val e1 = avb.eraseFooter(image, bool("keep_hashtree"), onLine)
+                sb.appendLine("erase_footer 退出码: $e1")
+                if (e1 != 0) return sb.toString() to image
+                // 2) 用新密钥重新签名
+                if (bool("hashtree")) {
+                    val e2 = avb.addHashtreeFooter(
+                        AvbTool.HashtreeFooterParams(
+                            imagePath = image,
+                            partitionSize = num("partition_size") ?: 0L,
+                            partitionName = f["partition_name"] ?: "boot",
+                            keyPath = key,
+                            algorithm = f["algorithm"]?.takeIf { it.isNotBlank() } ?: "SHA256_RSA4096",
+                            rollbackIndex = num("rollback_index") ?: 0,
+                            hashAlgorithm = f["hash_algorithm"]?.takeIf { it.isNotBlank() } ?: "sha256",
+                            fecNumRoots = int("fec_num_roots"),
+                        ),
+                        onLine,
+                    )
+                    sb.appendLine("add_hashtree_footer 退出码: $e2")
+                } else {
+                    val e2 = avb.addHashFooter(
+                        AvbTool.HashFooterParams(
+                            imagePath = image,
+                            partitionSize = num("partition_size") ?: 0L,
+                            partitionName = f["partition_name"] ?: "boot",
+                            keyPath = key,
+                            algorithm = f["algorithm"]?.takeIf { it.isNotBlank() } ?: "SHA256_RSA4096",
+                            rollbackIndex = num("rollback_index") ?: 0,
+                            hashAlgorithm = f["hash_algorithm"]?.takeIf { it.isNotBlank() } ?: "sha256",
+                        ),
+                        onLine,
+                    )
+                    sb.appendLine("add_hash_footer 退出码: $e2")
+                }
+                return sb.toString() to image
+            }
+
             else -> return "未知命令：${cmd.id}" to null
         }
     }

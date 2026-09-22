@@ -109,17 +109,29 @@ val IMAGES_COMMANDS = listOf(
         ),
     ),
     CommandDef(
-        "update_partition_descriptor", "更新分区描述符", "⚠ 官方 avbtool.py 中不存在该子命令（AOSP 未提供）", emptyList(), unsupported = true,
+        "update_partition_descriptor", "更新分区描述符", "⚠ 官方 avbtool.py 无此命令；等效流程：提取 vbmeta（extract_vbmeta_image）→ 重建（make_vbmeta_image）→ 追加（append_vbmeta_image）", emptyList(), unsupported = true,
     ),
     CommandDef(
-        "resign_image", "重新签名", "⚠ 官方 avbtool.py 中不存在该子命令（AOSP 未提供）", emptyList(), unsupported = true,
+        "resign_image", "重新签名", "resign_image（App 组合实现）：擦除 footer 后用新密钥/算法重新签名（等价 erase_footer + add_*_footer）",
+        listOf(
+            CommandArg("image", "镜像", ArgKind.FILE, required = true),
+            CommandArg("partition_size", "分区大小", ArgKind.NUMBER, required = true),
+            CommandArg("partition_name", "分区名", ArgKind.TEXT, required = true, hint = "boot"),
+            CommandArg("key", "私钥", ArgKind.FILE, required = true),
+            CommandArg("algorithm", "算法", ArgKind.TEXT, hint = "SHA256_RSA4096"),
+            CommandArg("hash_algorithm", "哈希算法", ArgKind.TEXT, hint = "sha256"),
+            CommandArg("rollback_index", "Rollback Index", ArgKind.NUMBER),
+            CommandArg("fec_num_roots", "FEC Roots（哈希树模式）", ArgKind.NUMBER, hint = "2"),
+            CommandArg("hashtree", "哈希树模式（dm-verity）", ArgKind.BOOL),
+            CommandArg("keep_hashtree", "擦除时保留原哈希树", ArgKind.BOOL),
+        ),
     ),
 )
 
 val INFO_COMMANDS = listOf(
     CommandDef("version", "工具版本", "version：打印 avbtool 版本", emptyList()),
     CommandDef(
-        "check_mldsa_support", "检查 ML-DSA 支持", "⚠ 官方 avbtool.py 中不存在该子命令（AOSP 未提供）", emptyList(), unsupported = true,
+        "check_mldsa_support", "检查 ML-DSA 支持", "检查当前 avbtool 是否支持 ML-DSA（后量子签名）算法（自动检测）", emptyList(),
     ),
     CommandDef(
         "info_image", "查看信息", "info_image：显示镜像 footer/vbmeta 详细信息",
