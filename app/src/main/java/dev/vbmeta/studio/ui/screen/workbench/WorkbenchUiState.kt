@@ -35,4 +35,8 @@ data class WorkbenchActions(
     val onCreateVbmeta: () -> Unit,
     val onClearFinished: () -> Unit,
     val onApplyPreset: (JobPreset, List<String>) -> Unit,
+    /** 为指定任务选择一个附加文件（如追加 vbmeta 用的 vbmeta 镜像） */
+    val onPickExtraImage: (String) -> Unit,
+    /** 初始化工具链 */
+    val onInitToolchain: () -> Unit,
 )

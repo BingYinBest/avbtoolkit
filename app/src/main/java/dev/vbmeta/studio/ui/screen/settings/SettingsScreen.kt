@@ -34,7 +34,7 @@ fun SettingPager(
         onToolchainInit = viewModel::initToolchain,
         onToolchainSelfCheck = viewModel::selfCheckToolchain,
         onToolchainClear = viewModel::clearToolchain,
-        onCheckUpdate = viewModel::checkForUpdate,
+        onOpenGuide = { navigator.push(Route.Guide) },
     )
 
     when (LocalUiMode.current) {

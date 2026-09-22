@@ -19,6 +19,11 @@ enum class PartitionType(val label: String) {
 enum class JobMode(val label: String) {
     HASH_FOOTER("哈希签名"),
     HASHTREE_FOOTER("哈希树签名"),
+    APPEND_VBMETA("追加 vbmeta"),
+    ERASE_FOOTER("擦除 footer"),
+    ZERO_HASHTREE("清零哈希树"),
+    EXTRACT_VBMETA("提取 vbmeta"),
+    RESIZE_IMAGE("调整大小"),
     INFO("查看信息"),
     VERIFY("验证"),
     FEC_ENCODE("FEC 编码"),
@@ -46,6 +51,12 @@ data class SignConfig(
     val partitionSize: Long? = null,
     /** null=按分区类型自动推断 */
     val partitionName: String? = null,
+    /** 追加 vbmeta 模式：要追加的 vbmeta 镜像工作路径 */
+    val extraImagePath: String? = null,
+    /** 擦除 footer 模式：保留哈希树 */
+    val keepHashtree: Boolean = false,
+    /** 提取 vbmeta / 摘要输出模式：输出填充字节数 */
+    val paddingSize: Int? = null,
 )
 
 data class ImageJob(

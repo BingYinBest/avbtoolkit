@@ -206,6 +206,9 @@ private fun KeyCard(
                 TextButton(onClick = { actions.onExportAvbKey(key) }) {
                     Text(stringResource(R.string.keys_export_avb))
                 }
+                TextButton(onClick = { actions.onExportDigest(key) }) {
+                    Text(stringResource(R.string.keys_export_digest))
+                }
                 TextButton(
                     onClick = {
                         if (confirmDelete) {

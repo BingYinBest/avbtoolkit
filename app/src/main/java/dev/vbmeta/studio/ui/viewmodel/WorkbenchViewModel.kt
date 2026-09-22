@@ -65,6 +65,13 @@ class WorkbenchViewModel : ViewModel() {
         _uiState.update { it.copy(lastError = null) }
     }
 
+    fun initToolchain() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val ok = runCatching { toolchain.ensureReady() }.getOrDefault(false)
+            _uiState.update { it.copy(toolchainReady = ok) }
+        }
+    }
+
     /** SAF 选择的镜像 → 拷贝到工作目录、识别分区类型、入队。 */
     fun onImagesPicked(uris: List<Uri>) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -97,6 +104,23 @@ class WorkbenchViewModel : ViewModel() {
                 } catch (_: Exception) {
                     // 单个文件导入失败不影响队列
                 }
+            }
+        }
+    }
+
+    /** 为任务导入附加文件（追加 vbmeta 等），存为 extraImagePath。 */
+    fun onExtraImagePicked(jobId: String, uri: Uri) {
+        val job = jobsRepo.jobs.value.find { it.id == jobId } ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            val workDir = File(app.filesDir, "work").apply { mkdirs() }
+            val name = queryDisplayName(uri) ?: "extra_${System.currentTimeMillis()}.img"
+            val workFile = File(workDir, "${System.currentTimeMillis()}_$name")
+            try {
+                app.contentResolver.openInputStream(uri)?.use { input ->
+                    workFile.outputStream().use { output -> input.copyTo(output) }
+                }
+                jobsRepo.update(job.copy(config = job.config.copy(extraImagePath = workFile.absolutePath)))
+            } catch (_: Exception) {
             }
         }
     }
@@ -280,6 +304,61 @@ class WorkbenchViewModel : ViewModel() {
                         onLine,
                     )
                     log.appendLine("add_hashtree_footer 退出码: $exit")
+                    exit == 0
+                }
+
+                JobMode.APPEND_VBMETA -> {
+                    val vbmeta = job.config.extraImagePath
+                    if (vbmeta == null) {
+                        log.appendLine("错误：未选择要追加的 vbmeta 镜像")
+                        false
+                    } else {
+                        val exit = avb.appendVbmetaImage(
+                            job.workPath,
+                            job.config.partitionSize ?: alignToBlock(job.sizeBytes),
+                            vbmeta,
+                            onLine,
+                        )
+                        log.appendLine("append_vbmeta_image 退出码: $exit")
+                        exit == 0
+                    }
+                }
+
+                JobMode.ERASE_FOOTER -> {
+                    val exit = avb.eraseFooter(job.workPath, job.config.keepHashtree, onLine)
+                    log.appendLine("erase_footer 退出码: $exit")
+                    exit == 0
+                }
+
+                JobMode.ZERO_HASHTREE -> {
+                    val exit = avb.zeroHashtree(job.workPath, onLine)
+                    log.appendLine("zero_hashtree 退出码: $exit")
+                    exit == 0
+                }
+
+                JobMode.EXTRACT_VBMETA -> {
+                    val src = File(job.workPath)
+                    val output = File(src.parentFile, "${src.nameWithoutExtension}.vbmeta.img")
+                    val exit = avb.extractVbmetaImage(
+                        src.absolutePath,
+                        output.absolutePath,
+                        job.config.paddingSize,
+                        onLine,
+                    )
+                    log.appendLine("extract_vbmeta_image 退出码: $exit")
+                    if (exit == 0) {
+                        finalJob = job.copy(workPath = output.absolutePath, sizeBytes = output.length())
+                    }
+                    exit == 0
+                }
+
+                JobMode.RESIZE_IMAGE -> {
+                    val exit = avb.resizeImage(
+                        job.workPath,
+                        job.config.partitionSize ?: alignToBlock(job.sizeBytes),
+                        onLine,
+                    )
+                    log.appendLine("resize_image 退出码: $exit")
                     exit == 0
                 }
 

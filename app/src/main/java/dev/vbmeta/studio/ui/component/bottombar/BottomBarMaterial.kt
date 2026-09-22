@@ -7,16 +7,20 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Construction
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.outlined.Badge
 import androidx.compose.material.icons.outlined.Construction
-import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Key
 import androidx.compose.material.icons.outlined.MenuBook
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Storage
+import androidx.compose.material.icons.outlined.Verified
 import androidx.compose.material3.FlexibleBottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBarItem
@@ -32,10 +36,11 @@ fun BottomBarMaterial() {
     val mainPagerState = LocalMainPagerState.current
 
     val items = listOf(
-        Triple(R.string.home, Icons.Filled.Home, Icons.Outlined.Home),
         Triple(R.string.tab_workbench, Icons.Filled.Construction, Icons.Outlined.Construction),
+        Triple(R.string.tab_verify, Icons.Filled.Verified, Icons.Outlined.Verified),
         Triple(R.string.tab_keys, Icons.Filled.Key, Icons.Outlined.Key),
-        Triple(R.string.tab_guide, Icons.Filled.MenuBook, Icons.Outlined.MenuBook),
+        Triple(R.string.tab_partition, Icons.Filled.Storage, Icons.Outlined.Storage),
+        Triple(R.string.tab_atx, Icons.Filled.Badge, Icons.Outlined.Badge),
         Triple(R.string.settings, Icons.Filled.Settings, Icons.Outlined.Settings)
     )
 

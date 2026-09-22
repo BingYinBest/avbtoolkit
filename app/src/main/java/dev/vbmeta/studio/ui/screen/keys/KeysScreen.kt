@@ -34,6 +34,7 @@ fun KeysPager(
 
     var pendingExport by remember { mutableStateOf<KeyEntry?>(null) }
     var pendingAvbExport by remember { mutableStateOf<KeyEntry?>(null) }
+    var pendingDigestExport by remember { mutableStateOf<KeyEntry?>(null) }
     val context = LocalContext.current
 
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -64,6 +65,14 @@ fun KeysPager(
         pendingAvbExport = null
     }
 
+    val digestExportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri ->
+        val key = pendingDigestExport
+        if (uri != null && key != null) viewModel.exportPublicKeyDigest(key, uri)
+        pendingDigestExport = null
+    }
+
     val actions = KeysActions(
         onGenerate = viewModel::generate,
         onImport = { importLauncher.launch(arrayOf("application/x-pem-file", "text/plain", "*/*")) },
@@ -75,6 +84,10 @@ fun KeysPager(
         onExportAvbKey = { key ->
             pendingAvbExport = key
             avbExportLauncher.launch("${key.name}.avb_pub.bin")
+        },
+        onExportDigest = { key ->
+            pendingDigestExport = key
+            digestExportLauncher.launch("${key.name}.pub_digest.bin")
         },
     )
 

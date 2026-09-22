@@ -60,11 +60,13 @@ import dev.vbmeta.studio.ui.navigation3.Navigator
 import dev.vbmeta.studio.ui.navigation3.Route
 import dev.vbmeta.studio.ui.navigation3.rememberNavigator
 import dev.vbmeta.studio.ui.screen.about.AboutScreen
+import dev.vbmeta.studio.ui.screen.atx.AtxPager
 import dev.vbmeta.studio.ui.screen.guide.GuidePager
-import dev.vbmeta.studio.ui.screen.home.HomePager
 import dev.vbmeta.studio.ui.screen.keys.KeysPager
+import dev.vbmeta.studio.ui.screen.partition.PartitionPager
 import dev.vbmeta.studio.ui.screen.permission.PermissionScreen
 import dev.vbmeta.studio.ui.screen.settings.SettingPager
+import dev.vbmeta.studio.ui.screen.verify.VerifyPager
 import dev.vbmeta.studio.ui.screen.workbench.WorkbenchPager
 import dev.vbmeta.studio.ui.theme.TemplateTheme
 import dev.vbmeta.studio.ui.theme.LocalColorMode
@@ -148,6 +150,7 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.Main> { mainScreenEntry() }
                                 entry<Route.About> { AboutScreen() }
                                 entry<Route.Permissions> { PermissionScreen() }
+                                entry<Route.Guide> { GuidePager(navController, Dp(0f)) }
                                 entry<Route.Home> { mainScreenEntry() }
                                 entry<Route.Settings> { mainScreenEntry() }
                             }
@@ -228,11 +231,12 @@ fun MainScreen(
                 ) { page ->
                     val isCurrentPage = page == settledPage
                     when (page) {
-                        0 -> if (isCurrentPage || contentReady) HomePager(navController, bottomInnerPadding, isCurrentPage)
-                        1 -> if (isCurrentPage || contentReady) WorkbenchPager(navController, bottomInnerPadding)
+                        0 -> if (isCurrentPage || contentReady) WorkbenchPager(navController, bottomInnerPadding)
+                        1 -> if (isCurrentPage || contentReady) VerifyPager(navController, bottomInnerPadding)
                         2 -> if (isCurrentPage || contentReady) KeysPager(navController, bottomInnerPadding)
-                        3 -> if (isCurrentPage || contentReady) GuidePager(navController, bottomInnerPadding)
-                        4 -> if (isCurrentPage || contentReady) SettingPager(navController, bottomInnerPadding)
+                        3 -> if (isCurrentPage || contentReady) PartitionPager(navController, bottomInnerPadding)
+                        4 -> if (isCurrentPage || contentReady) AtxPager(navController, bottomInnerPadding)
+                        5 -> if (isCurrentPage || contentReady) SettingPager(navController, bottomInnerPadding)
                     }
                 }
             }

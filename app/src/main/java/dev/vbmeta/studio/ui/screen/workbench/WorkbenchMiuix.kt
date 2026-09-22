@@ -62,6 +62,7 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
+import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -122,7 +123,13 @@ fun WorkbenchPagerMiuix(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         if (!state.toolchainReady) {
-                            WarningCard(stringResource(R.string.workbench_toolchain_missing))
+                            Column {
+                                WarningCard(stringResource(R.string.workbench_toolchain_missing))
+                                TextButton(
+                                    text = stringResource(R.string.home_toolchain_init),
+                                    onClick = actions.onInitToolchain,
+                                )
+                            }
                         }
                         state.lastError?.let { error ->
                             Text(
@@ -325,6 +332,29 @@ private fun ConfigSection(
                 title = stringResource(R.string.workbench_partition_size),
                 initial = config.partitionSize ?: 0,
                 onCommit = { v -> update { cfg -> cfg.copy(partitionSize = if (v > 0) v else null) } },
+            )
+        }
+        if (config.mode == JobMode.APPEND_VBMETA) {
+            BasicComponent(
+                title = stringResource(R.string.workbench_extra_image),
+                summary = config.extraImagePath?.substringAfterLast('/')
+                    ?: stringResource(R.string.workbench_extra_image_hint),
+                onClick = { actions.onPickExtraImage(job.id) },
+            )
+        }
+        if (config.mode == JobMode.ERASE_FOOTER) {
+            SwitchPreference(
+                title = stringResource(R.string.workbench_keep_hashtree),
+                checked = config.keepHashtree,
+                onCheckedChange = { v -> update { cfg -> cfg.copy(keepHashtree = v) } },
+            )
+        }
+        if (config.mode == JobMode.EXTRACT_VBMETA) {
+            NumericConfigField(
+                key = job.id,
+                title = stringResource(R.string.workbench_padding_size),
+                initial = (config.paddingSize ?: 0).toLong(),
+                onCommit = { v -> update { cfg -> cfg.copy(paddingSize = if (v > 0) v.toInt() else null) } },
             )
         }
     }

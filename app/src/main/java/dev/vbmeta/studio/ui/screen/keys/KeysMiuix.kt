@@ -213,6 +213,7 @@ private fun KeyCard(
             Row(modifier = Modifier.padding(horizontal = 8.dp)) {
                 TextButton(text = stringResource(R.string.keys_export_public), onClick = { actions.onExportPublic(key) })
                 TextButton(text = stringResource(R.string.keys_export_avb), onClick = { actions.onExportAvbKey(key) })
+                TextButton(text = stringResource(R.string.keys_export_digest), onClick = { actions.onExportDigest(key) })
                 TextButton(
                     text = stringResource(if (confirmDelete) R.string.keys_confirm_delete else R.string.keys_delete),
                     onClick = {

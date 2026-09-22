@@ -99,6 +99,23 @@ class KeysViewModel : ViewModel() {
         }
     }
 
+    /** 导出公钥 SHA-256 摘要（extract_public_key_digest）。 */
+    fun exportPublicKeyDigest(key: KeyEntry, uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                val ok = toolchain.ensureReady()
+                if (!ok) return@runCatching
+                val tmp = File(app.cacheDir, "pub_digest_${key.name}.bin")
+                val exit = AvbTool(toolchain).extractPublicKeyDigest(key.privateKeyPath, tmp.absolutePath)
+                if (exit != 0) return@runCatching
+                app.contentResolver.openOutputStream(uri)?.use { out ->
+                    tmp.inputStream().use { it.copyTo(out) }
+                }
+                tmp.delete()
+            }
+        }
+    }
+
     private fun uniqueName(base: String): String {
         val existing = keyManager.listKeys().map { it.name }.toSet()
         if (base !in existing) return base

@@ -192,6 +192,232 @@ class AvbTool(private val toolchain: ToolchainManager) {
         return CommandRunner.run(cmd, env(), onLine)
     }
 
+    /** 把 vbmeta 追加到分区镜像尾部。 */
+    suspend fun appendVbmetaImage(
+        imagePath: String,
+        partitionSize: Long,
+        vbmetaImagePath: String,
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("append_vbmeta_image")
+            add("--image"); add(imagePath)
+            add("--partition_size"); add(partitionSize.toString())
+            add("--vbmeta_image"); add(vbmetaImagePath)
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
+    /** 擦除镜像上的 AVB footer（可选保留哈希树）。 */
+    suspend fun eraseFooter(
+        imagePath: String,
+        keepHashtree: Boolean = false,
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("erase_footer")
+            add("--image"); add(imagePath)
+            if (keepHashtree) add("--keep_hashtree")
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
+    /** 清零镜像中的哈希树与 FEC 数据（保留 footer）。 */
+    suspend fun zeroHashtree(
+        imagePath: String,
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("zero_hashtree")
+            add("--image"); add(imagePath)
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
+    /** 从带 footer 的镜像中提取 vbmeta 到新文件。 */
+    suspend fun extractVbmetaImage(
+        imagePath: String,
+        outputPath: String,
+        paddingSize: Int? = null,
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("extract_vbmeta_image")
+            add("--image"); add(imagePath)
+            add("--output"); add(outputPath)
+            paddingSize?.let { add("--padding_size"); add(it.toString()) }
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
+    /** 调整带 footer 镜像的目标分区大小。 */
+    suspend fun resizeImage(
+        imagePath: String,
+        partitionSize: Long,
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("resize_image")
+            add("--image"); add(imagePath)
+            add("--partition_size"); add(partitionSize.toString())
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
+    /** 提取公钥 SHA-256 摘要。 */
+    suspend fun extractPublicKeyDigest(
+        keyPath: String,
+        outputPath: String,
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("extract_public_key_digest")
+            add("--key"); add(keyPath)
+            add("--output"); add(outputPath)
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
+    /** 计算 vbmeta 摘要（多镜像链校验）。 */
+    suspend fun calculateVbmetaDigest(
+        imagePath: String,
+        outputPath: String? = null,
+        hashAlgorithm: String = "sha256",
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("calculate_vbmeta_digest")
+            add("--image"); add(imagePath)
+            add("--hash_algorithm"); add(hashAlgorithm)
+            outputPath?.let { add("--output"); add(it) }
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
+    /** 生成 dm-verity 内核命令行。 */
+    suspend fun calculateKernelCmdline(
+        imagePath: String,
+        outputPath: String? = null,
+        hashtreeDisabled: Boolean = false,
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("calculate_kernel_cmdline")
+            add("--image"); add(imagePath)
+            if (hashtreeDisabled) add("--hashtree_disabled")
+            outputPath?.let { add("--output"); add(it) }
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
+    /** 设置 A/B 槽位元数据。 */
+    suspend fun setAbMetadata(
+        miscImagePath: String,
+        slotData: String,
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("set_ab_metadata")
+            add("--misc_image"); add(miscImagePath)
+            add("--slot_data"); add(slotData)
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
+    /** 创建 ATX 证书（avb_cert 扩展）。 */
+    suspend fun makeCertificate(
+        outputPath: String,
+        subject: String,
+        subjectKeyPath: String,
+        subjectKeyVersion: Long = 1,
+        subjectIsIntermediateAuthority: Boolean = false,
+        usage: List<String> = emptyList(),
+        usageForUnlock: Boolean = false,
+        authorityKeyPath: String? = null,
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("make_certificate")
+            add("--output"); add(outputPath)
+            add("--subject"); add(subject)
+            add("--subject_key"); add(subjectKeyPath)
+            add("--subject_key_version"); add(subjectKeyVersion.toString())
+            if (subjectIsIntermediateAuthority) add("--subject_is_intermediate_authority")
+            usage.forEach { add("--usage"); add(it) }
+            if (usageForUnlock) add("--usage_for_unlock")
+            authorityKeyPath?.let { add("--authority_key"); add(it) }
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
+    /** 创建 ATX 设备永久属性。 */
+    suspend fun makeCertPermanentAttributes(
+        outputPath: String,
+        rootAuthorityKeyPath: String,
+        productId: ByteArray? = null,
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("make_cert_permanent_attributes")
+            add("--output"); add(outputPath)
+            add("--root_authority_key"); add(rootAuthorityKeyPath)
+            productId?.let {
+                val hex = it.joinToString("") { "%02x".format(it) }
+                add("--product_id"); add(hex)
+            }
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
+    /** 创建 ATX 证书元数据。 */
+    suspend fun makeCertMetadata(
+        outputPath: String,
+        intermediateKeyCertificatePath: String,
+        productKeyCertificatePath: String,
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("make_cert_metadata")
+            add("--output"); add(outputPath)
+            add("--intermediate_key_certificate"); add(intermediateKeyCertificatePath)
+            add("--product_key_certificate"); add(productKeyCertificatePath)
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
+    /** 创建 ATX 解锁凭证。 */
+    suspend fun makeCertUnlockCredential(
+        outputPath: String,
+        intermediateKeyCertificatePath: String,
+        unlockKeyCertificatePath: String,
+        challenge: String,
+        unlockKeyPath: String,
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("make_cert_unlock_credential")
+            add("--output"); add(outputPath)
+            add("--intermediate_key_certificate"); add(intermediateKeyCertificatePath)
+            add("--unlock_key_certificate"); add(unlockKeyCertificatePath)
+            add("--challenge"); add(challenge)
+            add("--unlock_key"); add(unlockKeyPath)
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
     companion object {
         private val DESCRIPTOR_HEADS = listOf(
             "Hash descriptor:",

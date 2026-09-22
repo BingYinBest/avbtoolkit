@@ -13,11 +13,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import dev.vbmeta.studio.data.repository.SettingsRepository
 import dev.vbmeta.studio.data.repository.SettingsRepositoryImpl
-import dev.vbmeta.studio.ui.screen.home.getAppVersion
 import dev.vbmeta.studio.ui.screen.settings.SettingsUiState
 import dev.vbmeta.studio.ui.theme.ColorMode
-import dev.vbmeta.studio.ui.util.LatestVersionInfo
-import dev.vbmeta.studio.ui.util.checkNewVersion
 
 class SettingsViewModel(
     private val repo: SettingsRepository = SettingsRepositoryImpl()
@@ -45,7 +42,6 @@ class SettingsViewModel(
             val colorStyle = repo.colorStyle
             val colorSpec = repo.colorSpec
             val uiMode = repo.uiMode
-            val appVersion = getAppVersion(templateApp)
 
             _uiState.update {
                 it.copy(
@@ -61,10 +57,8 @@ class SettingsViewModel(
                     pageScale = pageScale,
                     colorStyle = colorStyle,
                     colorSpec = colorSpec,
-                    currentVersionCode = appVersion.versionCode,
                 )
             }
-            if (checkUpdate) checkForUpdate()
         }
     }
 
@@ -170,16 +164,6 @@ class SettingsViewModel(
     fun setPageScale(scale: Float) {
         repo.pageScale = scale
         _uiState.update { it.copy(pageScale = scale) }
-    }
-
-    /** 检查 GitHub Releases 是否有新版本（设置页手动入口与开关打开时自动调用）。 */
-    fun checkForUpdate() {
-        if (_uiState.value.checkingUpdate) return
-        viewModelScope.launch(Dispatchers.IO) {
-            _uiState.update { it.copy(checkingUpdate = true) }
-            val info = runCatching { checkNewVersion() }.getOrDefault(LatestVersionInfo())
-            _uiState.update { it.copy(checkingUpdate = false, latestVersion = info) }
-        }
     }
 
     fun initToolchain() {

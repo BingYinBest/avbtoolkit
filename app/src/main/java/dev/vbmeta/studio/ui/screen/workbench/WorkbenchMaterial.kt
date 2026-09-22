@@ -52,6 +52,8 @@ import dev.vbmeta.studio.model.JobMode
 import dev.vbmeta.studio.model.JobStatus
 import dev.vbmeta.studio.model.SignConfig
 import dev.vbmeta.studio.ui.component.material.SegmentedDropdownItem
+import dev.vbmeta.studio.ui.component.material.SegmentedListItem
+import dev.vbmeta.studio.ui.component.material.SegmentedSwitchItem
 
 private val ALGORITHMS = listOf(
     "SHA256_RSA2048", "SHA256_RSA4096", "SHA256_RSA8192",
@@ -90,11 +92,16 @@ fun WorkbenchPagerMaterial(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (!state.toolchainReady) {
-                        Text(
-                            text = stringResource(R.string.workbench_toolchain_missing),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
-                        )
+                        Column {
+                            Text(
+                                text = stringResource(R.string.workbench_toolchain_missing),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                            Button(onClick = actions.onInitToolchain) {
+                                Text(stringResource(R.string.home_toolchain_init))
+                            }
+                        }
                     }
                     state.lastError?.let { error ->
                         Text(
@@ -314,6 +321,34 @@ private fun ConfigSection(
                 title = stringResource(R.string.workbench_partition_size),
                 initial = config.partitionSize ?: 0,
                 onCommit = { v -> update { cfg -> cfg.copy(partitionSize = if (v > 0) v else null) } },
+            )
+        }
+        if (config.mode == JobMode.APPEND_VBMETA) {
+            SegmentedListItem(
+                onClick = { actions.onPickExtraImage(job.id) },
+                headlineContent = { Text(stringResource(R.string.workbench_extra_image)) },
+                supportingContent = {
+                    Text(
+                        config.extraImagePath?.substringAfterLast('/')
+                            ?: stringResource(R.string.workbench_extra_image_hint)
+                    )
+                },
+            )
+        }
+        if (config.mode == JobMode.ERASE_FOOTER) {
+            SegmentedSwitchItem(
+                icon = null,
+                title = stringResource(R.string.workbench_keep_hashtree),
+                checked = config.keepHashtree,
+                onCheckedChange = { v -> update { cfg -> cfg.copy(keepHashtree = v) } },
+            )
+        }
+        if (config.mode == JobMode.EXTRACT_VBMETA) {
+            NumericConfigField(
+                key = job.id,
+                title = stringResource(R.string.workbench_padding_size),
+                initial = (config.paddingSize ?: 0).toLong(),
+                onCommit = { v -> update { cfg -> cfg.copy(paddingSize = if (v > 0) v.toInt() else null) } },
             )
         }
     }

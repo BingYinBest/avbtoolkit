@@ -4,7 +4,6 @@ import androidx.compose.runtime.Immutable
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
 import dev.vbmeta.studio.ui.UiMode
-import dev.vbmeta.studio.ui.util.LatestVersionInfo
 
 @Immutable
 data class SettingsUiState(
@@ -22,9 +21,6 @@ data class SettingsUiState(
     val pageScale: Float = 1.0f,
     val toolchainReady: Boolean = false,
     val toolchainVersions: Map<String, String> = emptyMap(),
-    val latestVersion: LatestVersionInfo = LatestVersionInfo(),
-    val checkingUpdate: Boolean = false,
-    val currentVersionCode: Long = 0,
 )
 
 @Immutable
@@ -35,5 +31,5 @@ data class SettingsScreenActions(
     val onToolchainInit: () -> Unit,
     val onToolchainSelfCheck: () -> Unit,
     val onToolchainClear: () -> Unit,
-    val onCheckUpdate: () -> Unit,
+    val onOpenGuide: () -> Unit,
 )

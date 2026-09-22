@@ -37,6 +37,13 @@ fun WorkbenchPager(
         if (!uris.isNullOrEmpty()) viewModel.onImagesPicked(uris)
     }
 
+    var extraJobId by remember { mutableStateOf<String?>(null) }
+    val extraPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        val id = extraJobId
+        if (uri != null && id != null) viewModel.onExtraImagePicked(id, uri)
+        extraJobId = null
+    }
+
     var exportJob by remember { mutableStateOf<ImageJob?>(null) }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/octet-stream")
@@ -65,6 +72,11 @@ fun WorkbenchPager(
         onCreateVbmeta = viewModel::createVbmeta,
         onClearFinished = viewModel::clearFinished,
         onApplyPreset = viewModel::applyPreset,
+        onPickExtraImage = { jobId ->
+            extraJobId = jobId
+            extraPicker.launch("*/*")
+        },
+        onInitToolchain = viewModel::initToolchain,
     )
 
     when (LocalUiMode.current) {

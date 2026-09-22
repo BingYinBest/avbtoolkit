@@ -92,6 +92,9 @@ class JobsRepository(context: Context) {
         .put("vbmetaFlags", vbmetaFlags)
         .put("partitionSize", partitionSize)
         .put("partitionName", partitionName)
+        .put("extraImagePath", extraImagePath)
+        .put("keepHashtree", keepHashtree)
+        .put("paddingSize", paddingSize)
 
     private fun JSONObject.toImageJob(): ImageJob = ImageJob(
         id = optString("id"),
@@ -118,5 +121,8 @@ class JobsRepository(context: Context) {
         vbmetaFlags = optInt("vbmetaFlags"),
         partitionSize = if (isNull("partitionSize")) null else optLong("partitionSize"),
         partitionName = if (isNull("partitionName")) null else optString("partitionName"),
+        extraImagePath = if (isNull("extraImagePath")) null else optString("extraImagePath"),
+        keepHashtree = optBoolean("keepHashtree"),
+        paddingSize = if (isNull("paddingSize")) null else optInt("paddingSize"),
     )
 }

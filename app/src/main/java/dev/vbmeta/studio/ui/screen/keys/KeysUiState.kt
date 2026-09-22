@@ -17,4 +17,5 @@ data class KeysActions(
     val onDelete: (String) -> Unit,
     val onExportPublic: (KeyEntry) -> Unit,
     val onExportAvbKey: (KeyEntry) -> Unit,
+    val onExportDigest: (KeyEntry) -> Unit,
 )
