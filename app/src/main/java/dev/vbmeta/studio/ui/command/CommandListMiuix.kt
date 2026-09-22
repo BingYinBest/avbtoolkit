@@ -141,7 +141,7 @@ private fun CommandCardMiuix(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = if (cmd.unsupported) {
-            top.yukonga.miuix.kmp.basic.CardDefaults.defaultColors(color = colorScheme.onSurfaceVariant.copy(alpha = 0.08f))
+            top.yukonga.miuix.kmp.basic.CardDefaults.defaultColors(color = colorScheme.onSurfaceVariantSummary.copy(alpha = 0.08f))
         } else {
             top.yukonga.miuix.kmp.basic.CardDefaults.defaultColors()
         },

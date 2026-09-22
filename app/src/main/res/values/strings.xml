@@ -72,6 +72,7 @@
     <string name="tab_workbench">Images</string>
     <string name="tab_verify">Info</string>
     <string name="tab_keys">Key &amp; Cert</string>
+    <string name="tab_guide">Guide</string>
     <string name="home_toolchain_ready">Toolchain ready</string>
     <string name="home_toolchain_missing">Toolchain not initialized</string>
     <string name="home_toolchain_init">Initialize</string>

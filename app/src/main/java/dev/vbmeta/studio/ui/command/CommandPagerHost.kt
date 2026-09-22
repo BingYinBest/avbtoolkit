@@ -3,21 +3,41 @@ package dev.vbmeta.studio.ui.command
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Card as MaterialCard
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text as MaterialText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.vbmeta.studio.templateApp
 import dev.vbmeta.studio.ui.LocalUiMode
 import dev.vbmeta.studio.ui.UiMode
 import dev.vbmeta.studio.ui.viewmodel.CommandViewModel
+import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.Card as MiuixCard
+import top.yukonga.miuix.kmp.basic.Text as MiuixText
+import top.yukonga.miuix.kmp.basic.TextButton as MiuixTextButton
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import java.io.File
 
 /**
@@ -84,56 +104,59 @@ fun CommandPagerHost(
 @Composable
 private fun KeyManagerHeaderMiuix() {
     val keyManager = templateApp.keyManager
+    val scope = rememberCoroutineScope()
     var keys by remember { mutableStateOf(keyManager.listKeys()) }
     val context = LocalContext.current
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             val tmp = File(context.cacheDir, "import_key.pem")
-            runCatching {
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    tmp.outputStream().use { output -> input.copyTo(output) }
+            scope.launch {
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        tmp.outputStream().use { output -> input.copyTo(output) }
+                    }
+                    keyManager.import("imported-${System.currentTimeMillis() % 10000}", tmp.absolutePath)
                 }
-                keyManager.import("imported-${System.currentTimeMillis() % 10000}", tmp.absolutePath)
             }
             keys = keyManager.listKeys()
         }
     }
-    top.yukonga.miuix.kmp.basic.Card(modifier = androidx.compose.ui.Modifier.fillMaxWidth(), showIndication = false) {
-        androidx.compose.foundation.layout.Column(
-            modifier = androidx.compose.ui.Modifier.padding(vertical = 4.dp),
-        ) {
-            top.yukonga.miuix.kmp.basic.Text(
+    MiuixCard(modifier = Modifier.fillMaxWidth(), showIndication = false) {
+        Column(modifier = Modifier.padding(vertical = 4.dp)) {
+            MiuixText(
                 text = "密钥库",
                 fontSize = 15.sp,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium,
-                color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurface,
-                modifier = androidx.compose.ui.Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                fontWeight = FontWeight.Medium,
+                color = MiuixTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
             if (keys.isEmpty()) {
-                top.yukonga.miuix.kmp.basic.Text(
+                MiuixText(
                     text = "暂无密钥，先生成一把（RSA 4096）",
                     fontSize = 13.sp,
-                    color = top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    modifier = androidx.compose.ui.Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                 )
             } else {
                 keys.forEach { key ->
-                    top.yukonga.miuix.kmp.basic.BasicComponent(
+                    BasicComponent(
                         title = key.name,
                         summary = "${key.bits} bit",
                         onClick = { },
                     )
                 }
             }
-            androidx.compose.foundation.layout.Row(modifier = androidx.compose.ui.Modifier.padding(horizontal = 8.dp)) {
-                top.yukonga.miuix.kmp.basic.TextButton(
+            Row(modifier = Modifier.padding(horizontal = 8.dp)) {
+                MiuixTextButton(
                     text = "生成 4096",
                     onClick = {
-                        keyManager.generate("avb-key-${System.currentTimeMillis() % 100000}", 4096)
+                        scope.launch {
+                            keyManager.generate("avb-key-${System.currentTimeMillis() % 100000}", 4096)
+                        }
                         keys = keyManager.listKeys()
                     },
                 )
-                top.yukonga.miuix.kmp.basic.TextButton(
+                MiuixTextButton(
                     text = "导入",
                     onClick = { importLauncher.launch("*/*") },
                 )
@@ -145,55 +168,58 @@ private fun KeyManagerHeaderMiuix() {
 @Composable
 private fun KeyManagerHeaderMaterial() {
     val keyManager = templateApp.keyManager
+    val scope = rememberCoroutineScope()
     var keys by remember { mutableStateOf(keyManager.listKeys()) }
     val context = LocalContext.current
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) {
             val tmp = File(context.cacheDir, "import_key.pem")
-            runCatching {
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    tmp.outputStream().use { output -> input.copyTo(output) }
+            scope.launch {
+                runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        tmp.outputStream().use { output -> input.copyTo(output) }
+                    }
+                    keyManager.import("imported-${System.currentTimeMillis() % 10000}", tmp.absolutePath)
                 }
-                keyManager.import("imported-${System.currentTimeMillis() % 10000}", tmp.absolutePath)
             }
             keys = keyManager.listKeys()
         }
     }
-    androidx.compose.material3.Card(modifier = androidx.compose.ui.Modifier.fillMaxWidth()) {
-        androidx.compose.foundation.layout.Column(
-            modifier = androidx.compose.ui.Modifier.padding(16.dp),
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+    MaterialCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            androidx.compose.material3.Text(
+            MaterialText(
                 text = "密钥库",
-                style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
             )
             if (keys.isEmpty()) {
-                androidx.compose.material3.Text(
+                MaterialText(
                     text = "暂无密钥，先生成一把（RSA 4096）",
-                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
-                    color = androidx.compose.material3.MaterialTheme.colorScheme.outline,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline,
                 )
             } else {
                 keys.forEach { key ->
-                    androidx.compose.material3.Text(
+                    MaterialText(
                         text = "${key.name}（${key.bits} bit）",
-                        style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.bodyMedium,
                     )
                 }
             }
-            androidx.compose.foundation.layout.Row(
-                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
-            ) {
-                androidx.compose.material3.OutlinedButton(onClick = {
-                    keyManager.generate("avb-key-${System.currentTimeMillis() % 100000}", 4096)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = {
+                    scope.launch {
+                        keyManager.generate("avb-key-${System.currentTimeMillis() % 100000}", 4096)
+                    }
                     keys = keyManager.listKeys()
                 }) {
-                    androidx.compose.material3.Text("生成 4096")
+                    MaterialText("生成 4096")
                 }
-                androidx.compose.material3.OutlinedButton(onClick = { importLauncher.launch("*/*") }) {
-                    androidx.compose.material3.Text("导入")
+                OutlinedButton(onClick = { importLauncher.launch("*/*") }) {
+                    MaterialText("导入")
                 }
             }
         }
