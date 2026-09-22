@@ -62,12 +62,9 @@
     <string name="settings_floating_bottom_bar_summary">使用 Apple 风格的悬浮底栏</string>
     <string name="settings_enable_glass">液态玻璃</string>
     <string name="settings_enable_glass_summary">启用悬浮底栏的液态玻璃效果</string>
-    <string name="tab_workbench">签名</string>
-    <string name="tab_verify">验证</string>
-    <string name="tab_keys">密钥</string>
-    <string name="tab_partition">分区</string>
-    <string name="tab_atx">证书</string>
-    <string name="tab_guide">引导</string>
+    <string name="tab_workbench">镜像</string>
+    <string name="tab_verify">信息</string>
+    <string name="tab_keys">密钥证书</string>
     <string name="home_toolchain_ready">工具链就绪</string>
     <string name="home_toolchain_missing">工具链未初始化</string>
     <string name="home_toolchain_init">初始化</string>

@@ -69,12 +69,9 @@
     <string name="settings_floating_bottom_bar_summary">Use Apple style floating bottom bar.</string>
     <string name="settings_enable_glass">Liquid glass</string>
     <string name="settings_enable_glass_summary">Enable liquid glass effect for floating bottom bar.</string>
-    <string name="tab_workbench">Sign</string>
-    <string name="tab_verify">Verify</string>
-    <string name="tab_keys">Keys</string>
-    <string name="tab_partition">Partition</string>
-    <string name="tab_atx">Cert</string>
-    <string name="tab_guide">Guide</string>
+    <string name="tab_workbench">Images</string>
+    <string name="tab_verify">Info</string>
+    <string name="tab_keys">Key &amp; Cert</string>
     <string name="home_toolchain_ready">Toolchain ready</string>
     <string name="home_toolchain_missing">Toolchain not initialized</string>
     <string name="home_toolchain_init">Initialize</string>

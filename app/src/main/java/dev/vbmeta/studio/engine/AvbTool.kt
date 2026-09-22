@@ -62,6 +62,32 @@ class AvbTool(private val toolchain: ToolchainManager) {
 
     private fun env() = toolchain.env()
 
+    /** avbtool version：打印工具版本。 */
+    suspend fun version(onLine: (String) -> Unit = {}): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("version")
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
+    /** 生成已知模式的测试镜像（0x00..0xff 循环）。 */
+    suspend fun generateTestImage(
+        outputPath: String,
+        imageSize: Long? = null,
+        startByte: Int? = null,
+        onLine: (String) -> Unit = {},
+    ): Int {
+        val cmd = buildList {
+            addAll(base())
+            add("generate_test_image")
+            add("--output"); add(outputPath)
+            imageSize?.let { add("--image_size"); add(it.toString()) }
+            startByte?.let { add("--start_byte"); add(it.toString()) }
+        }
+        return CommandRunner.run(cmd, env(), onLine)
+    }
+
     suspend fun addHashFooter(
         params: HashFooterParams,
         onLine: (String) -> Unit = {},
