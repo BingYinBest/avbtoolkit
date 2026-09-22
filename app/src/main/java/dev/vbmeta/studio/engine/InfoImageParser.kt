@@ -91,11 +91,8 @@ data class InfoImageData(
     val vbmeta: VbmetaInfo? = null,
 )
 
-/** info_image 解析器：纯 Kotlin 实现，不依赖外部命令，便于扩展。 */
-object InfoImageParser {
-
-    // 与 avbtool ALGORITHMS 表一致
-    private val AVB_ALGORITHMS = mapOf(
+// 与 avbtool ALGORITHMS 表一致
+private val AVB_ALGORITHMS = mapOf(
         0 to "NONE",
         1 to "SHA256_RSA2048",
         2 to "SHA256_RSA4096",
@@ -106,6 +103,9 @@ object InfoImageParser {
         7 to "MLDSA65",
         8 to "MLDSA87",
     )
+
+/** info_image 解析器：纯 Kotlin 实现，不依赖外部命令，便于扩展。 */
+object InfoImageParser {
 
     private const val FOOTER_MAGIC = "AVBf"
     private const val VBMETA_MAGIC = "AVB0"
@@ -175,7 +175,7 @@ object InfoImageParser {
         val rollbackIndexLocation = raf.readInt()
         val releaseBytes = ByteArray(47)
         raf.readFully(releaseBytes)
-        val releaseString = releaseBytes.takeWhile { it != 0.toByte() }.toString(Charsets.UTF_8)
+        val releaseString = releaseBytes.takeWhile { it != 0.toByte() }.toByteArray().toString(Charsets.UTF_8)
 
         // 公钥 SHA-1（位于辅助块内）
         var publicKeySha1: String? = null
@@ -283,7 +283,7 @@ object InfoImageParser {
 
     private fun parseChainPartition(data: ByteArray): DescriptorInfo {
         val rollbackIndexLocation = readInt(data, 0)
-        val nameEnd = data.indexOf(0, 4).takeIf { it >= 4 } ?: data.size
+        val nameEnd = (4 until data.size).firstOrNull { data[it] == 0.toByte() } ?: data.size
         val partitionName = String(data, 4, nameEnd - 4, Charsets.UTF_8)
         val publicKey = data.copyOfRange((nameEnd + 1).coerceAtMost(data.size), data.size)
         return DescriptorInfo.ChainPartition(rollbackIndexLocation, partitionName, publicKey)
@@ -390,7 +390,7 @@ object InfoImageParser {
     private fun readString(data: ByteArray, off: Int, maxLen: Int): String {
         val end = minOf(off + maxLen, data.size)
         val raw = data.copyOfRange(off, end)
-        return raw.takeWhile { it != 0.toByte() }.toString(Charsets.UTF_8)
+        return raw.takeWhile { it != 0.toByte() }.toByteArray().toString(Charsets.UTF_8)
     }
 
     private fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }

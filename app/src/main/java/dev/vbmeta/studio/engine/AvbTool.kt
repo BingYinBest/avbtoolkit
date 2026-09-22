@@ -1,5 +1,7 @@
 package dev.vbmeta.studio.engine
 
+import java.io.File
+
 /**
  * avbtool 子命令封装。参数与 AOSP external/avb avbtool.py 一一对应。
  * 所有 --image 操作都是原地修改，调用方需先在工作目录复制镜像。
