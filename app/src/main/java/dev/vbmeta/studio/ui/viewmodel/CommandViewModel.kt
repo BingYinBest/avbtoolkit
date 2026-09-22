@@ -207,18 +207,12 @@ class CommandViewModel : ViewModel() {
 
             "info_image" -> {
                 val image = file("image") ?: return missing("image") to null
-                val info = avb.infoImage(image)
-                if (info.hasFooter) {
-                    sb.appendLine("Footer version: ${info.footerVersion}")
-                    sb.appendLine("算法: ${info.algorithm}")
-                    sb.appendLine("Rollback Index: ${info.rollbackIndex}")
-                    sb.appendLine("Flags: ${info.flags}")
-                    sb.appendLine("镜像大小: ${info.imageSize}")
-                    sb.appendLine("descriptors: ${info.descriptors.joinToString()}")
-                } else {
-                    sb.appendLine("未检测到 AVB footer")
-                }
-                return sb.toString() to null
+                val infoFile = workFile("info.txt")
+                val pubFile = workFile("public_key.bin")
+                val r = avb.infoImageFull(image, infoFile, bool("cert"), pubFile)
+                sb.appendLine(r.text)
+                if (r.pubkeyPath != null) sb.appendLine("公钥已提取到 public_key.bin（点导出保存）")
+                return sb.toString().ifBlank { "完成 ✓" } to infoFile
             }
 
             "verify_image" -> {

@@ -133,8 +133,11 @@ val INFO_COMMANDS = listOf(
         "check_mldsa_support", "检查 ML-DSA 支持", "check_mldsa_support：检查系统 openssl 是否支持 ML-DSA（后量子签名）", emptyList(),
     ),
     CommandDef(
-        "info_image", "查看信息", "info_image：显示镜像 footer/vbmeta 详细信息",
-        listOf(CommandArg("image", "镜像", ArgKind.FILE, required = true)),
+        "info_image", "查看信息", "info_image：解析显示 footer/VBMeta/描述符（支持导出信息与公钥）",
+        listOf(
+            CommandArg("image", "镜像", ArgKind.FILE, required = true),
+            CommandArg("cert", "显示 avb_cert 扩展信息", ArgKind.BOOL),
+        ),
     ),
     CommandDef(
         "verify_image", "验证镜像", "verify_image：校验签名/hash/hashtree",

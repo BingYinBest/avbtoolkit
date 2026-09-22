@@ -190,6 +190,38 @@ class AvbTool(private val toolchain: ToolchainManager) {
         return parseInfo(sb.toString())
     }
 
+    data class InfoImageFullResult(
+        val text: String,
+        val infoFilePath: String?,
+        val pubkeyPath: String?,
+    )
+
+    /**
+     * 完整 info_image：App 内解析（InfoImageParser），支持 --output / --cert / --output_pubkey。
+     * @param infoOutputPath 非空时把格式化信息写入该文件
+     * @param pubkeyOutputPath 非空时把镜像内公钥 blob 写入该文件
+     */
+    suspend fun infoImageFull(
+        imagePath: String,
+        infoOutputPath: String? = null,
+        showAtx: Boolean = false,
+        pubkeyOutputPath: String? = null,
+    ): InfoImageFullResult {
+        val data = InfoImageParser.parse(File(imagePath))
+        val text = InfoImageParser.format(data, showAtx)
+        var infoPath: String? = null
+        if (infoOutputPath != null) {
+            runCatching { File(infoOutputPath).writeText(text) }.onSuccess { infoPath = infoOutputPath }
+        }
+        var pubPath: String? = null
+        if (pubkeyOutputPath != null) {
+            data.vbmeta?.publicKeyBlob?.let { blob ->
+                runCatching { File(pubkeyOutputPath).writeBytes(blob) }.onSuccess { pubPath = pubkeyOutputPath }
+            }
+        }
+        return InfoImageFullResult(text, infoPath, pubPath)
+    }
+
     /** 提取 AVB 格式公钥（用于 --chain_partition 场景）。 */
     suspend fun extractPublicKey(
         keyPath: String,
