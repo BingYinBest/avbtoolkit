@@ -150,7 +150,7 @@ class MainActivity : ComponentActivity() {
                                 entry<Route.Main> { mainScreenEntry() }
                                 entry<Route.About> { AboutScreen() }
                                 entry<Route.Permissions> { PermissionScreen() }
-                                entry<Route.Guide> { GuidePager(navController, Dp(0f)) }
+                                entry<Route.Guide> { GuidePager(navigator, Dp(0f)) }
                                 entry<Route.Home> { mainScreenEntry() }
                                 entry<Route.Settings> { mainScreenEntry() }
                             }
